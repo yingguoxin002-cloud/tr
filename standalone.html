@@ -3,15 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Gemini Live 实时翻译</title>
+  <title>Gemini Live 实时翻译测试版</title>
 
   <style>
     :root {
       color-scheme: dark;
       --bg: #07111f;
-      --panel: rgba(255, 255, 255, 0.08);
-      --panel2: rgba(255, 255, 255, 0.12);
-      --line: rgba(255, 255, 255, 0.14);
+      --card: rgba(255,255,255,.09);
+      --line: rgba(255,255,255,.15);
       --text: #f8fbff;
       --muted: #9fb2c9;
       --green: #28e17a;
@@ -32,15 +31,12 @@
     html,
     body {
       margin: 0;
-      width: 100%;
       min-height: 100%;
-      overflow: hidden;
       background:
-        radial-gradient(circle at 20% 0%, rgba(77, 163, 255, 0.22), transparent 34rem),
-        radial-gradient(circle at 82% 12%, rgba(40, 225, 122, 0.16), transparent 30rem),
+        radial-gradient(circle at 20% 0%, rgba(77,163,255,.22), transparent 32rem),
+        radial-gradient(circle at 82% 12%, rgba(40,225,122,.15), transparent 28rem),
         var(--bg);
       color: var(--text);
-      touch-action: manipulation;
     }
 
     body {
@@ -49,8 +45,8 @@
     }
 
     .app {
-      width: min(440px, 100%);
-      height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px);
+      width: min(460px, 100%);
+      min-height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px);
       margin: 0 auto;
       display: grid;
       grid-template-rows: auto 1fr auto auto;
@@ -60,19 +56,17 @@
     header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
       gap: 12px;
       padding-top: 12px;
     }
 
     h1 {
       margin: 0;
-      font-size: 23px;
+      font-size: 22px;
       line-height: 1.15;
-      font-weight: 780;
     }
 
-    .subtitle {
+    .sub {
       margin: 7px 0 0;
       color: var(--muted);
       font-size: 13px;
@@ -82,14 +76,13 @@
     .status {
       flex: 0 0 auto;
       height: 34px;
-      max-width: 160px;
       display: inline-flex;
       align-items: center;
       gap: 7px;
       padding: 0 12px;
-      border: 1px solid var(--line);
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.07);
       color: #dce7f5;
       font-size: 12px;
       white-space: nowrap;
@@ -102,22 +95,18 @@
       background: var(--muted);
     }
 
-    .is-live .dot {
+    .live .dot {
       background: var(--green);
-      animation: pulse 1.25s infinite;
+      animation: pulse 1.2s infinite;
     }
 
-    .is-error .dot {
+    .error .dot {
       background: var(--red);
     }
 
     @keyframes pulse {
-      0% {
-        box-shadow: 0 0 0 0 rgba(40, 225, 122, 0.45);
-      }
-      100% {
-        box-shadow: 0 0 0 12px rgba(40, 225, 122, 0);
-      }
+      0% { box-shadow: 0 0 0 0 rgba(40,225,122,.45); }
+      100% { box-shadow: 0 0 0 12px rgba(40,225,122,0); }
     }
 
     .panes {
@@ -127,46 +116,44 @@
     }
 
     .pane {
-      min-height: 0;
+      min-height: 150px;
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.13), var(--card));
+      box-shadow: 0 18px 46px rgba(0,0,0,.28);
       display: flex;
       flex-direction: column;
-      padding: 18px;
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      background: linear-gradient(180deg, var(--panel2), var(--panel));
-      box-shadow: 0 18px 46px rgba(0, 0, 0, 0.28);
       overflow: hidden;
     }
 
     .pane-head {
       display: flex;
       justify-content: space-between;
-      align-items: center;
       gap: 10px;
-      margin-bottom: 12px;
       color: var(--muted);
       font-size: 13px;
+      margin-bottom: 12px;
     }
 
     .text {
       flex: 1;
-      min-height: 0;
       overflow: auto;
-      font-size: clamp(21px, 7vw, 34px);
+      font-size: clamp(21px, 7vw, 32px);
       line-height: 1.22;
       font-weight: 750;
       word-break: break-word;
     }
 
     .placeholder {
-      color: rgba(248, 251, 255, 0.38);
+      color: rgba(248,251,255,.38);
     }
 
     .meter {
-      margin-top: 14px;
       height: 4px;
+      margin-top: 14px;
       border-radius: 99px;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255,255,255,.1);
       overflow: hidden;
     }
 
@@ -184,11 +171,10 @@
       grid-template-columns: 1fr 1.25fr 1fr;
       gap: 10px;
       padding: 12px;
-      border: 1px solid var(--line);
       border-radius: 28px;
-      background: rgba(6, 12, 22, 0.86);
-      box-shadow: 0 18px 46px rgba(0, 0, 0, 0.34);
-      backdrop-filter: blur(20px);
+      border: 1px solid var(--line);
+      background: rgba(6,12,22,.88);
+      box-shadow: 0 18px 46px rgba(0,0,0,.34);
     }
 
     button {
@@ -206,7 +192,6 @@
       justify-content: center;
       align-items: center;
       gap: 6px;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
     }
 
     button strong,
@@ -218,12 +203,11 @@
       font-size: 13px;
       line-height: 1.15;
       text-align: center;
-      font-weight: 800;
     }
 
     button span {
       font-size: 11px;
-      color: rgba(255, 255, 255, 0.75);
+      color: rgba(255,255,255,.75);
     }
 
     .left {
@@ -231,12 +215,9 @@
     }
 
     .center {
-      min-height: 98px;
+      min-height: 96px;
       border-radius: 26px;
       background: linear-gradient(180deg, #28e17a, #13994f);
-      box-shadow:
-        0 16px 34px rgba(40, 225, 122, 0.22),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.14);
     }
 
     .right {
@@ -244,68 +225,45 @@
     }
 
     button.active {
-      transform: translateY(2px) scale(0.98);
+      transform: translateY(2px) scale(.98);
       filter: brightness(1.08);
     }
 
     .log {
-      max-height: 72px;
+      max-height: 120px;
       overflow: auto;
       padding: 10px 12px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 16px;
-      background: rgba(0, 0, 0, 0.22);
-      color: #bfd0e8;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.25);
+      color: #c7d7ed;
       font-size: 12px;
-      line-height: 1.35;
+      line-height: 1.4;
       white-space: pre-wrap;
     }
 
     .toast {
       position: fixed;
       left: 50%;
-      bottom: calc(env(safe-area-inset-bottom) + 132px);
-      z-index: 10;
-      width: min(400px, calc(100vw - 28px));
+      bottom: calc(env(safe-area-inset-bottom) + 130px);
+      z-index: 20;
+      width: min(410px, calc(100vw - 28px));
       padding: 12px 14px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 16px;
-      background: rgba(17, 24, 36, 0.96);
+      background: rgba(18,24,35,.96);
+      border: 1px solid rgba(255,255,255,.14);
       color: #ffd8df;
       font-size: 13px;
       line-height: 1.4;
       transform: translate(-50%, 12px);
       opacity: 0;
       pointer-events: none;
-      transition: 160ms ease;
-      box-shadow: 0 16px 38px rgba(0, 0, 0, 0.35);
+      transition: .16s ease;
     }
 
     .toast.show {
       opacity: 1;
       transform: translate(-50%, 0);
-    }
-
-    @media (max-height: 720px) {
-      .pane {
-        padding: 14px;
-      }
-
-      .text {
-        font-size: clamp(18px, 6vw, 27px);
-      }
-
-      button {
-        min-height: 68px;
-      }
-
-      .center {
-        min-height: 82px;
-      }
-
-      .log {
-        max-height: 58px;
-      }
     }
   </style>
 </head>
@@ -315,7 +273,7 @@
     <header>
       <div>
         <h1>Gemini Live 实时翻译</h1>
-        <p class="subtitle">按住说话，松开结束。请用 localhost 或 HTTPS 打开。</p>
+        <p class="sub">点一下开始，再点一下停止。不要长按。请用 localhost 或 HTTPS 打开。</p>
       </div>
 
       <div class="status">
@@ -330,7 +288,7 @@
           <span id="inputTitle">原文</span>
           <span id="inputLang">自动识别</span>
         </div>
-        <div class="text placeholder" id="inputText">按住下方按钮开始说话</div>
+        <div class="text placeholder" id="inputText">点击下方按钮开始</div>
         <div class="meter"><span id="levelBar"></span></div>
       </article>
 
@@ -339,52 +297,42 @@
           <span id="outputTitle">译文</span>
           <span id="outputLang">中文 / English / Tiếng Việt</span>
         </div>
-        <div class="text placeholder" id="outputText">翻译结果会显示在这里，并自动播放语音</div>
+        <div class="text placeholder" id="outputText">译文会显示在这里，并自动播放</div>
       </article>
     </section>
 
     <nav class="controls">
       <button class="left" data-target="en" data-title="中文 → 英语" type="button">
         <strong>中文 → 英语</strong>
-        <span>按住说话</span>
+        <span>点击开始/停止</span>
       </button>
 
       <button class="center" data-target="zh-Hans" data-title="英/越 → 中文" type="button">
         <strong>翻译成中文</strong>
-        <span>按住听对方</span>
+        <span>点击开始/停止</span>
       </button>
 
       <button class="right" data-target="vi" data-title="中文 → 越南文" type="button">
         <strong>中文 → 越南文</strong>
-        <span>按住说话</span>
+        <span>点击开始/停止</span>
       </button>
     </nav>
 
-    <div class="log" id="logBox">11日志：待机</div>
+    <div class="log" id="logBox">日志：待机</div>
   </main>
 
   <div class="toast" id="toast"></div>
 
   <script>
-    /*
-      按官方文档的临时令牌方式：
-      v1alpha + BidiGenerateContentConstrained + access_token
-
-      注意：
-      1. 这个 AQ token 如果有过期时间，过期后需要重新换。
-      2. 如果 token 创建时已经锁定了 translationConfig，
-         前端按钮选择的 targetLanguageCode 必须和 token 约束一致。
-    */
     const ACCESS_TOKEN = "AQ.Ab8RN6IAGwTeCcpea80QcH_tQi9MSC_6yTF8NZ8k-G2s93D0mQ";
 
     const MODEL = "gemini-3.5-live-translate-preview";
-
     const WS_ENDPOINT =
       "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained";
 
-    const INPUT_SAMPLE_RATE = 16000;
-    const OUTPUT_SAMPLE_RATE = 24000;
-    const SEND_INTERVAL_MS = 100;
+    const INPUT_RATE = 16000;
+    const OUTPUT_RATE = 24000;
+    const CHUNK_MS = 100;
 
     const app = document.getElementById("app");
     const statusText = document.getElementById("statusText");
@@ -409,7 +357,7 @@
     let micStream = null;
     let micSource = null;
     let processor = null;
-    let currentSession = null;
+    let session = null;
     let sendTimer = null;
     let floatQueue = [];
     let nextPlayTime = 0;
@@ -417,111 +365,112 @@
     let toastTimer = null;
 
     buttons.forEach((button) => {
-      button.addEventListener("contextmenu", prevent);
-      button.addEventListener("selectstart", prevent);
-      button.addEventListener("touchstart", prevent, { passive: false });
+      button.addEventListener("contextmenu", (e) => e.preventDefault());
+      button.addEventListener("selectstart", (e) => e.preventDefault());
 
-      button.addEventListener("pointerdown", async (event) => {
+      button.addEventListener("click", async (event) => {
         event.preventDefault();
-        event.stopPropagation();
 
-        try {
-          button.setPointerCapture?.(event.pointerId);
-        } catch {}
+        if (session && session.button === button) {
+          finishSession();
+          return;
+        }
 
         await startSession(button);
       });
-
-      button.addEventListener("pointerup", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        try {
-          button.releasePointerCapture?.(event.pointerId);
-        } catch {}
-
-        finishSession();
-      });
-
-      button.addEventListener("pointercancel", finishSession);
-      button.addEventListener("lostpointercapture", finishSession);
     });
 
-    window.addEventListener("pagehide", () => {
-      stopSession(true, true);
-    });
-
-    function prevent(event) {
-      event.preventDefault();
-    }
+    window.addEventListener("pagehide", () => stopSession(true, true));
 
     async function startSession(button) {
-      if (currentSession) {
-        stopSession(true, true);
-      }
+      if (session) stopSession(true, true);
 
       const targetLanguageCode = button.dataset.target;
       const title = button.dataset.title;
 
-      currentSession = {
+      session = {
         button,
         targetLanguageCode,
         title,
         ws: null,
         setupComplete: false,
-        holding: true,
+        micReady: false,
+        running: true,
         pending: [],
-        closeTimer: null
+        closeTimer: null,
+        setupTimer: null
       };
 
-      buttons.forEach((item) => item.classList.toggle("active", item === button));
+      buttons.forEach((b) => b.classList.toggle("active", b === button));
 
-      setStatus("连接中", "live");
-      setText(inputText, "正在打开麦克风...", true);
+      setStatus("启动中", "live");
+      setText(inputText, "正在请求麦克风权限...", true);
       setText(outputText, "正在连接 Gemini Live API...", true);
-
       inputTitle.textContent = "正在听";
       inputLang.textContent = "自动识别";
       outputTitle.textContent = title;
       outputLang.textContent = languageNames[targetLanguageCode] || targetLanguageCode;
-
       levelBar.style.width = "0%";
       floatQueue = [];
       resetPlayback();
 
+      log("开始启动。");
+
       try {
-        await ensureAudioContext();
-        openWebSocket(currentSession);
-        await openMicrophone(currentSession);
-        startSendLoop(currentSession);
+        await ensureBrowserReady();
+        openWebSocket(session);
+        await openMicrophoneWithTimeout(session);
+        startSendLoop(session);
         setStatus("实时翻译中", "live");
+        log("启动完成，可以开始说话。");
       } catch (error) {
         showError(error.message || "启动失败");
+        log("启动失败：" + (error.message || error));
         stopSession(true, true);
       }
     }
 
-    function openWebSocket(session) {
-      const url = `${WS_ENDPOINT}?access_token=${encodeURIComponent(ACCESS_TOKEN)}`;
-      const ws = new WebSocket(url);
+    async function ensureBrowserReady() {
+      if (!window.isSecureContext) {
+        throw new Error("当前页面不是安全环境。请用 http://localhost 或 HTTPS 打开，不要直接双击 file://。");
+      }
 
-      session.ws = ws;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("当前浏览器不支持麦克风，请换 Chrome / Safari。");
+      }
 
-      log("正在连接 v1alpha access_token WebSocket...");
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      if (audioContext.state !== "running") {
+        await audioContext.resume();
+      }
+
+      log("浏览器环境检查通过。");
+    }
+
+    function openWebSocket(s) {
+      const wsUrl = `${WS_ENDPOINT}?access_token=${encodeURIComponent(ACCESS_TOKEN)}`;
+      const ws = new WebSocket(wsUrl);
+
+      s.ws = ws;
+
+      log("正在连接 WebSocket...");
+
+      s.setupTimer = setTimeout(() => {
+        if (session === s && !s.setupComplete) {
+          showError("Gemini 没有返回 setupComplete。可能是 token 过期、token 已使用过，或 token 创建时锁定的配置与当前按钮语言不一致。");
+          log("setupComplete 超时。");
+          stopSession(true, true);
+        }
+      }, 10000);
 
       ws.onopen = () => {
-        if (currentSession !== session) return;
+        if (session !== s) return;
 
-        log("WebSocket 已连接，发送 setup。");
+        log("WebSocket 已打开，发送 setup。");
 
-        /*
-          完全按官方 setup 示例：
-          setup.model
-          setup.generationConfig.responseModalities
-          setup.generationConfig.inputAudioTranscription
-          setup.generationConfig.outputAudioTranscription
-          setup.generationConfig.translationConfig
-        */
         const setupMessage = {
           setup: {
             model: `models/${MODEL}`,
@@ -530,7 +479,7 @@
               inputAudioTranscription: {},
               outputAudioTranscription: {},
               translationConfig: {
-                targetLanguageCode: session.targetLanguageCode,
+                targetLanguageCode: s.targetLanguageCode,
                 echoTargetLanguage: true
               }
             }
@@ -541,9 +490,8 @@
       };
 
       ws.onmessage = (event) => {
-        if (!event.data) return;
-
         let data;
+
         try {
           data = JSON.parse(event.data);
         } catch {
@@ -552,55 +500,44 @@
         }
 
         if (data.setupComplete) {
-          session.setupComplete = true;
-          log("setupComplete，开始发送音频。");
-          flushPendingAudio(session);
+          s.setupComplete = true;
+          clearTimeout(s.setupTimer);
+          log("收到 setupComplete。");
+          flushPendingAudio(s);
           return;
         }
 
         if (data.error) {
           const message = data.error.message || JSON.stringify(data.error);
-          log("API 错误：" + message);
           showError(message);
+          log("API 错误：" + message);
           stopSession(true, true);
           return;
         }
 
         if (data.serverContent) {
-          handleServerContent(session, data.serverContent);
+          handleServerContent(s, data.serverContent);
         }
       };
 
       ws.onerror = () => {
         log("WebSocket error。");
-        showError("WebSocket 连接失败。请确认 token 没过期，并且网络能访问 Google。");
+        showError("WebSocket 连接失败。请检查网络是否能访问 Google，或 token 是否仍有效。");
       };
 
       ws.onclose = (event) => {
         log(`WebSocket 关闭：code=${event.code || ""} reason=${event.reason || "无"}`);
 
-        if (currentSession === session) {
+        if (session === s) {
           stopSession(true, true);
         }
       };
     }
 
-    async function ensureAudioContext() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("当前浏览器不支持麦克风。请用 Chrome 或 Safari，并通过 localhost / HTTPS 打开。");
-      }
+    async function openMicrophoneWithTimeout(s) {
+      log("正在请求麦克风权限...");
 
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-
-      if (audioContext.state !== "running") {
-        await audioContext.resume();
-      }
-    }
-
-    async function openMicrophone(session) {
-      micStream = await navigator.mediaDevices.getUserMedia({
+      const micPromise = navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: 1,
           echoCancellation: true,
@@ -609,16 +546,28 @@
         }
       });
 
-      if (currentSession !== session) {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error("麦克风授权超时。请检查浏览器地址栏是否弹出麦克风权限请求，并确认页面是 localhost 或 HTTPS。"));
+        }, 10000);
+      });
+
+      micStream = await Promise.race([micPromise, timeoutPromise]);
+
+      if (session !== s) {
         stopTracks(micStream);
         return;
       }
+
+      s.micReady = true;
+      setText(inputText, "麦克风已打开，请开始说话。", true);
+      log("麦克风已打开。");
 
       micSource = audioContext.createMediaStreamSource(micStream);
       processor = audioContext.createScriptProcessor(4096, 1, 1);
 
       processor.onaudioprocess = (event) => {
-        if (currentSession !== session || !session.holding) return;
+        if (session !== s || !s.running) return;
 
         const input = event.inputBuffer.getChannelData(0);
         updateLevel(input);
@@ -626,28 +575,23 @@
       };
 
       micSource.connect(processor);
-
-      /*
-        ScriptProcessorNode 必须连接到 destination 才会持续工作。
-        这里不会播放麦克风原声，因为我们没有写 outputBuffer。
-      */
       processor.connect(audioContext.destination);
-
-      log("麦克风已打开。");
     }
 
-    function startSendLoop(session) {
+    function startSendLoop(s) {
       stopSendLoop();
 
       sendTimer = setInterval(() => {
-        if (currentSession !== session || !session.holding) return;
+        if (session !== s || !s.running) return;
 
-        const pcm = pullChunk(audioContext.sampleRate, INPUT_SAMPLE_RATE, SEND_INTERVAL_MS);
+        const pcm = pullChunk(audioContext.sampleRate, INPUT_RATE, CHUNK_MS);
 
         if (pcm) {
-          sendAudio(session, pcm);
+          sendAudio(s, pcm);
         }
-      }, SEND_INTERVAL_MS);
+      }, CHUNK_MS);
+
+      log("音频发送循环已启动。");
     }
 
     function stopSendLoop() {
@@ -658,19 +602,17 @@
     }
 
     function pullChunk(inputRate, outputRate, ms) {
-      const neededInputSamples = Math.ceil(inputRate * ms / 1000);
-      const availableSamples = floatQueue.reduce((sum, arr) => sum + arr.length, 0);
+      const need = Math.ceil(inputRate * ms / 1000);
+      const available = floatQueue.reduce((sum, arr) => sum + arr.length, 0);
 
-      if (availableSamples < neededInputSamples) {
-        return null;
-      }
+      if (available < need) return null;
 
-      const input = new Float32Array(neededInputSamples);
+      const input = new Float32Array(need);
       let offset = 0;
 
-      while (offset < neededInputSamples && floatQueue.length) {
+      while (offset < need && floatQueue.length) {
         const first = floatQueue[0];
-        const take = Math.min(first.length, neededInputSamples - offset);
+        const take = Math.min(first.length, need - offset);
 
         input.set(first.subarray(0, take), offset);
         offset += take;
@@ -686,13 +628,11 @@
     }
 
     function pullRemaining(inputRate, outputRate) {
-      const availableSamples = floatQueue.reduce((sum, arr) => sum + arr.length, 0);
+      const available = floatQueue.reduce((sum, arr) => sum + arr.length, 0);
 
-      if (!availableSamples) {
-        return null;
-      }
+      if (!available) return null;
 
-      const input = new Float32Array(availableSamples);
+      const input = new Float32Array(available);
       let offset = 0;
 
       while (floatQueue.length) {
@@ -704,18 +644,9 @@
       return resampleFloatToPcm16(input, inputRate, outputRate);
     }
 
-    function sendAudio(session, pcmBuffer) {
+    function sendAudio(s, pcmBuffer) {
       if (!pcmBuffer || !pcmBuffer.byteLength) return;
 
-      /*
-        按官方示例：
-        session.sendRealtimeInput({
-          audio: {
-            data: chunk.toString('base64'),
-            mimeType: 'audio/pcm;rate=16000'
-          }
-        });
-      */
       const message = {
         realtimeInput: {
           audio: {
@@ -725,86 +656,78 @@
         }
       };
 
-      if (
-        session.ws &&
-        session.ws.readyState === WebSocket.OPEN &&
-        session.setupComplete
-      ) {
-        session.ws.send(JSON.stringify(message));
+      if (s.ws && s.ws.readyState === WebSocket.OPEN && s.setupComplete) {
+        s.ws.send(JSON.stringify(message));
       } else {
-        session.pending.push(message);
+        s.pending.push(message);
       }
     }
 
-    function flushPendingAudio(session) {
-      if (!session.ws || session.ws.readyState !== WebSocket.OPEN) return;
+    function flushPendingAudio(s) {
+      if (!s.ws || s.ws.readyState !== WebSocket.OPEN) return;
 
-      while (session.pending.length) {
-        session.ws.send(JSON.stringify(session.pending.shift()));
+      while (s.pending.length) {
+        s.ws.send(JSON.stringify(s.pending.shift()));
       }
     }
 
     function finishSession() {
-      if (!currentSession || !currentSession.holding) return;
+      if (!session || !session.running) return;
 
-      const session = currentSession;
-      session.holding = false;
+      const s = session;
+      s.running = false;
 
       stopSendLoop();
 
-      const remaining = pullRemaining(audioContext.sampleRate, INPUT_SAMPLE_RATE);
+      const remaining = pullRemaining(audioContext.sampleRate, INPUT_RATE);
 
       if (remaining) {
-        sendAudio(session, remaining);
+        sendAudio(s, remaining);
       }
 
       stopMicrophone();
 
       levelBar.style.width = "0%";
       setStatus("正在收尾", "live");
+      log("停止录音，发送 audioStreamEnd。");
 
       try {
-        if (session.ws && session.ws.readyState === WebSocket.OPEN) {
-          flushPendingAudio(session);
-
-          session.ws.send(JSON.stringify({
+        if (s.ws && s.ws.readyState === WebSocket.OPEN) {
+          flushPendingAudio(s);
+          s.ws.send(JSON.stringify({
             realtimeInput: {
               audioStreamEnd: true
             }
           }));
-
-          log("已发送 audioStreamEnd。");
         }
       } catch (error) {
         log("发送 audioStreamEnd 失败：" + error.message);
       }
 
-      session.closeTimer = setTimeout(() => {
-        if (currentSession === session) {
-          stopSession(true, true);
-        }
-      }, 3500);
+      s.closeTimer = setTimeout(() => {
+        if (session === s) stopSession(true, true);
+      }, 3000);
     }
 
     function stopSession(immediate = false, keepText = false) {
-      const session = currentSession;
+      const s = session;
 
-      if (!session) return;
+      if (!s) return;
 
-      currentSession = null;
+      session = null;
 
-      clearTimeout(session.closeTimer);
+      clearTimeout(s.closeTimer);
+      clearTimeout(s.setupTimer);
       stopSendLoop();
       stopMicrophone();
 
       try {
-        if (session.ws && session.ws.readyState <= WebSocket.OPEN) {
-          session.ws.close(1000, "stop");
+        if (s.ws && s.ws.readyState <= WebSocket.OPEN) {
+          s.ws.close(1000, "stop");
         }
       } catch {}
 
       buttons.forEach((button) => button.classList.remove("active"));
-
       floatQueue = [];
 
       if (immediate) {
@@ -812,8 +735,8 @@
       }
 
       if (!keepText) {
-        setText(inputText, "按住下方按钮开始说话 2303", true);
-        setText(outputText, "翻译结果会显示在这里，并自动播放语音11", true);
+        setText(inputText, "点击下方按钮开始", true);
+        setText(outputText, "译文会显示在这里，并自动播放", true);
       }
 
       setStatus("待机", "");
@@ -822,19 +745,12 @@
     function stopMicrophone() {
       if (processor) {
         processor.onaudioprocess = null;
-
-        try {
-          processor.disconnect();
-        } catch {}
-
+        try { processor.disconnect(); } catch {}
         processor = null;
       }
 
       if (micSource) {
-        try {
-          micSource.disconnect();
-        } catch {}
-
+        try { micSource.disconnect(); } catch {}
         micSource = null;
       }
 
@@ -852,7 +768,7 @@
       }
     }
 
-    function handleServerContent(session, content) {
+    function handleServerContent(s, content) {
       if (content.interrupted) {
         resetPlayback();
       }
@@ -884,27 +800,23 @@
         if (inlineData && inlineData.data) {
           const rate =
             parseSampleRate(inlineData.mimeType || inlineData.mime_type) ||
-            OUTPUT_SAMPLE_RATE;
+            OUTPUT_RATE;
 
           playPcm16Base64(inlineData.data, rate);
         }
       }
 
-      if (content.turnComplete && currentSession === session && !session.holding) {
-        clearTimeout(session.closeTimer);
+      if (content.turnComplete && session === s && !s.running) {
+        clearTimeout(s.closeTimer);
 
-        session.closeTimer = setTimeout(() => {
-          if (currentSession === session) {
-            stopSession(true, true);
-          }
+        s.closeTimer = setTimeout(() => {
+          if (session === s) stopSession(true, true);
         }, 900);
       }
     }
 
     function resampleFloatToPcm16(input, inputRate, outputRate) {
-      if (!input.length) {
-        return new ArrayBuffer(0);
-      }
+      if (!input.length) return new ArrayBuffer(0);
 
       const ratio = inputRate / outputRate;
       const outputLength = Math.max(1, Math.floor(input.length / ratio));
@@ -931,7 +843,6 @@
       if (!audioContext) return;
 
       const bytes = base64ToUint8Array(base64);
-
       if (bytes.byteLength < 2) return;
 
       const frameCount = Math.floor(bytes.byteLength / 2);
@@ -944,13 +855,11 @@
       }
 
       const source = audioContext.createBufferSource();
-
       source.buffer = audioBuffer;
       source.connect(audioContext.destination);
       source.onended = () => playingSources.delete(source);
 
       const now = audioContext.currentTime;
-
       nextPlayTime = Math.max(nextPlayTime, now + 0.03);
       source.start(nextPlayTime);
       nextPlayTime += audioBuffer.duration;
@@ -960,9 +869,7 @@
 
     function resetPlayback() {
       for (const source of playingSources) {
-        try {
-          source.stop();
-        } catch {}
+        try { source.stop(); } catch {}
       }
 
       playingSources.clear();
@@ -978,20 +885,16 @@
 
       const rms = Math.sqrt(total / samples.length);
       const value = Math.min(100, Math.max(2, Math.round(rms * 460)));
-
       levelBar.style.width = `${value}%`;
     }
 
     function arrayBufferToBase64(buffer) {
       const bytes = new Uint8Array(buffer);
       let binary = "";
-      const chunkSize = 0x8000;
+      const chunk = 0x8000;
 
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        binary += String.fromCharCode.apply(
-          null,
-          bytes.subarray(i, i + chunkSize)
-        );
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
       }
 
       return btoa(binary);
@@ -1021,21 +924,19 @@
 
     function setStatus(text, mode) {
       statusText.textContent = text;
-      app.classList.toggle("is-live", mode === "live");
-      app.classList.toggle("is-error", mode === "error");
+      app.classList.toggle("live", mode === "live");
+      app.classList.toggle("error", mode === "error");
     }
 
     function showError(message) {
       setStatus("错误", "error");
-
       toast.textContent = message;
       toast.classList.add("show");
-
       clearTimeout(toastTimer);
 
       toastTimer = setTimeout(() => {
         toast.classList.remove("show");
-      }, 5200);
+      }, 7000);
     }
 
     function log(message) {
