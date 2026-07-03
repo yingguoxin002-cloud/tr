@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>面对面实时翻译</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0f14;
+      --panel: #121821;
+      --panel-2: #192231;
+      --text: #f6f7fb;
+      --muted: #99a4b4;
+      --line: rgba(255, 255, 255, 0.1);
+      --green: #2bd576;
+      --blue: #4da3ff;
+      --orange: #ff9f43;
+      --red: #ff5c7a;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 22% 0%, rgba(77, 163, 255, 0.16), transparent 32rem),
+        radial-gradient(circle at 82% 18%, rgba(43, 213, 118, 0.12), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      overscroll-behavior: none;
+    }
+
+    body {
+      min-height: 100svh;
+      padding: env(safe-area-inset-top) 14px calc(env(safe-area-inset-bottom) + 14px);
+    }
+
+    .app {
+      width: min(430px, 100%);
+      min-height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px);
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 2px 2px;
+    }
+
+    .title {
+      min-width: 0;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    .title p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .status-pill {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      max-width: 148px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #cdd5df;
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      margin-right: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      box-shadow: 0 0 0 0 rgba(153, 164, 180, 0);
+    }
+
+    .is-live .status-dot {
+      background: var(--green);
+      animation: pulse 1.25s infinite;
+    }
+
+    .is-error .status-dot {
+      background: var(--red);
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(43, 213, 118, 0.44); }
+      100% { box-shadow: 0 0 0 12px rgba(43, 213, 118, 0); }
+    }
+
+    .conversation {
+      min-height: 0;
+      display: grid;
+      gap: 12px;
+      align-content: stretch;
+    }
+
+    .pane {
+      min-height: 180px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.045));
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .pane-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pane-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .mini-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    .pane.output .mini-dot {
+      background: var(--green);
+    }
+
+    .text {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      color: var(--text);
+      font-size: clamp(20px, 7vw, 32px);
+      line-height: 1.22;
+      font-weight: 710;
+      letter-spacing: 0;
+      word-break: break-word;
+    }
+
+    .placeholder {
+      color: rgba(246, 247, 251, 0.38);
+      font-weight: 650;
+    }
+
+    .meter {
+      height: 4px;
+      margin-top: 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .meter span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      transition: width 80ms linear;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1.35fr 1fr;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: rgba(12, 17, 24, 0.84);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(22px);
+    }
+
+    .talk-button {
+      appearance: none;
+      width: 100%;
+      min-height: 82px;
+      border: 0;
+      border-radius: 22px;
+      color: white;
+      background: var(--panel-2);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      font: inherit;
+      touch-action: none;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transform: translateY(0) scale(1);
+      transition: transform 130ms ease, filter 130ms ease, box-shadow 130ms ease;
+    }
+
+    .talk-button strong {
+      font-size: 13px;
+      line-height: 1.15;
+      font-weight: 790;
+      letter-spacing: 0;
+      text-align: center;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    .talk-button span {
+      color: rgba(255, 255, 255, 0.74);
+      font-size: 11px;
+      line-height: 1.1;
+    }
+
+    .talk-button.center {
+      min-height: 98px;
+      border-radius: 26px;
+      background: linear-gradient(180deg, #24d36f, #159850);
+      box-shadow: 0 18px 38px rgba(43, 213, 118, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+    }
+
+    .talk-button.left {
+      background: linear-gradient(180deg, #4da3ff, #266bd6);
+    }
+
+    .talk-button.right {
+      background: linear-gradient(180deg, #ffaf55, #de7128);
+    }
+
+    .talk-button.is-active {
+      transform: translateY(2px) scale(0.98);
+      filter: brightness(1.08);
+      box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(env(safe-area-inset-bottom) + 132px);
+      z-index: 8;
+      width: min(390px, calc(100vw - 28px));
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      background: rgba(16, 22, 32, 0.94);
+      color: #f8d7df;
+      box-shadow: var(--shadow);
+      transform: translate(-50%, 12px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    @media (max-height: 720px) {
+      .pane {
+        min-height: 142px;
+        padding: 15px;
+        border-radius: 20px;
+      }
+
+      .text {
+        font-size: clamp(18px, 6vw, 26px);
+      }
+
+      .talk-button {
+        min-height: 70px;
+        border-radius: 19px;
+      }
+
+      .talk-button.center {
+        min-height: 84px;
+        border-radius: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" id="app">
+    <header class="topbar">
+      <div class="title">
+        <h1>面对面实时翻译</h1>
+        <p>按住按钮就开始翻译，松开后自动收尾播放</p>
+      </div>
+      <div class="status-pill" id="statusPill">
+        <span class="status-dot"></span>
+        <span id="statusText">待机</span>
+      </div>
+    </header>
+
+    <section class="conversation" aria-live="polite">
+      <article class="pane input">
+        <div class="pane-header">
+          <div class="pane-label"><span class="mini-dot"></span><span id="inputLabel">正在听</span></div>
+          <span id="inputLang">自动识别</span>
+        </div>
+        <div class="text" id="inputText"><span class="placeholder">按住下方任意按钮开始</span></div>
+        <div class="meter"><span id="levelBar"></span></div>
+      </article>
+
+      <article class="pane output">
+        <div class="pane-header">
+          <div class="pane-label"><span class="mini-dot"></span><span id="outputLabel">翻译结果</span></div>
+          <span id="outputLang">中文 / English / Tiếng Việt</span>
+        </div>
+        <div class="text" id="outputText"><span class="placeholder">译文会实时显示，并从手机当前音频设备播放</span></div>
+      </article>
+    </section>
+
+    <nav class="controls" aria-label="翻译方向">
+      <button class="talk-button left" data-target="en" data-title="中文 → 英语" data-hint="我说中文" type="button">
+        <strong>中文→英语</strong>
+        <span>按住说话</span>
+      </button>
+      <button class="talk-button center" data-target="zh-Hans" data-title="英/越 → 中文" data-hint="对方说话" type="button">
+        <strong>翻译成中文</strong>
+        <span>按住听对方</span>
+      </button>
+      <button class="talk-button right" data-target="vi" data-title="中文 → 越南文" data-hint="我说中文" type="button">
+        <strong>中文→越南文</strong>
+        <span>按住说话</span>
+      </button>
+    </nav>
+  </main>
+
+  <div class="toast" id="toast" role="alert"></div>
+
+  <script>
+    const GEMINI_API_KEY = "AQ.Ab8RN6JOsWviqtToTxu_tL_rqQ9_nqfnezQe8S1TzWc-BV2a-A";
+    const GEMINI_MODEL = "gemini-3.5-live-translate-preview";
+    const GEMINI_WS_URL = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
+    const INPUT_RATE = 16000;
+    const OUTPUT_RATE = 24000;
+    const MAX_PENDING_CHUNKS = 45;
+
+    const labels = {
+      "zh-Hans": { output: "中文", mode: "英/越 → 中文" },
+      en: { output: "English", mode: "中文 → 英语" },
+      vi: { output: "Tiếng Việt", mode: "中文 → 越南文" }
+    };
+
+    const app = document.getElementById("app");
+    const statusPill = document.getElementById("statusPill");
+    const statusText = document.getElementById("statusText");
+    const inputLabel = document.getElementById("inputLabel");
+    const inputLang = document.getElementById("inputLang");
+    const outputLabel = document.getElementById("outputLabel");
+    const outputLang = document.getElementById("outputLang");
+    const inputText = document.getElementById("inputText");
+    const outputText = document.getElementById("outputText");
+    const levelBar = document.getElementById("levelBar");
+    const toast = document.getElementById("toast");
+    const buttons = Array.from(document.querySelectorAll(".talk-button"));
+
+    let audioContext;
+    let micStream;
+    let micSource;
+    let recorder;
+    let activeSession;
+    let toastTimer;
+    let nextPlayTime = 0;
+    let playingSources = new Set();
+
+    buttons.forEach((button) => {
+      button.addEventListener("contextmenu", (event) => event.preventDefault());
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        button.setPointerCapture?.(event.pointerId);
+        startSession(button);
+      });
+      button.addEventListener("pointerup", (event) => {
+        event.preventDefault();
+        button.releasePointerCapture?.(event.pointerId);
+        finishSession();
+      });
+      button.addEventListener("pointercancel", finishSession);
+      button.addEventListener("lostpointercapture", () => {
+        if (activeSession?.button === button && activeSession.isHolding) finishSession();
+      });
+    });
+
+    window.addEventListener("pagehide", () => stopSession({ immediate: true }));
+
+    async function startSession(button) {
+      if (activeSession) {
+        await stopSession({ immediate: true });
+      }
+
+      if (!GEMINI_API_KEY || GEMINI_API_KEY.includes("__GEMINI")) {
+        showError("这个 HTML 里还没有放 Gemini API key。");
+        return;
+      }
+
+      const target = button.dataset.target;
+      const config = labels[target];
+      const session = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        button,
+        target,
+        pending: [],
+        setupComplete: false,
+        isHolding: true,
+        closeTimer: null,
+        ws: null
+      };
+      activeSession = session;
+
+      buttons.forEach((item) => item.classList.toggle("is-active", item === button));
+      setStatus("连接中", "live");
+      setText(inputText, "正在打开麦克风...");
+      setText(outputText, "准备播放翻译...");
+      inputLabel.textContent = button.dataset.hint || "正在听";
+      outputLabel.textContent = config.mode;
+      inputLang.textContent = "自动识别";
+      outputLang.textContent = config.output;
+      levelBar.style.width = "0%";
+      resetPlayback();
+
+      try {
+        await ensureAudioContext();
+        openGeminiSocket(session);
+        await startMicrophone(session);
+        setStatus("实时翻译中", "live");
+      } catch (error) {
+        showError(error.message || "启动失败");
+        stopSession({ immediate: true });
+      }
+    }
+
+    function openGeminiSocket(session) {
+      const url = `${GEMINI_WS_URL}?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+      const ws = new WebSocket(url);
+      session.ws = ws;
+
+      ws.addEventListener("open", () => {
+        if (activeSession !== session) return;
+        ws.send(JSON.stringify({
+          setup: {
+            model: `models/${GEMINI_MODEL}`,
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              inputAudioTranscription: {},
+              outputAudioTranscription: {},
+              translationConfig: {
+                targetLanguageCode: session.target,
+                echoTargetLanguage: false
+              },
+              realtimeInputConfig: {
+                automaticActivityDetection: {
+                  disabled: false,
+                  prefixPaddingMs: 120,
+                  silenceDurationMs: 500
+                }
+              }
+            }
+          }
+        }));
+      });
+
+      ws.addEventListener("message", (event) => {
+        if (activeSession !== session && ws.readyState !== WebSocket.OPEN) return;
+
+        let data;
+        try {
+          data = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+
+        if (data.setupComplete) {
+          session.setupComplete = true;
+          flushPendingAudio(session);
+          return;
+        }
+
+        if (data.error) {
+          showError(data.error.message || "Gemini 返回错误");
+          stopSession({ immediate: true });
+          return;
+        }
+
+        if (data.serverContent) {
+          handleServerContent(session, data.serverContent);
+        }
+      });
+
+      ws.addEventListener("error", () => {
+        if (activeSession === session) {
+          showError("Gemini WebSocket 连接失败。你的手机网络需要能访问 Google。");
+        }
+      });
+
+      ws.addEventListener("close", () => {
+        if (activeSession === session) {
+          stopSession({ immediate: true, keepText: true });
+        }
+      });
+    }
+
+    async function startMicrophone(session) {
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1
+        }
+      });
+
+      if (activeSession !== session) {
+        stopTracks(micStream);
+        return;
+      }
+
+      micSource = audioContext.createMediaStreamSource(micStream);
+      recorder = audioContext.createScriptProcessor(4096, 1, 1);
+
+      recorder.onaudioprocess = (event) => {
+        if (activeSession !== session || !session.isHolding) return;
+
+        const samples = event.inputBuffer.getChannelData(0);
+        updateLevel(samples);
+        const pcm = resampleToPcm(samples, audioContext.sampleRate, INPUT_RATE);
+        sendAudio(session, pcm);
+      };
+
+      micSource.connect(recorder);
+      recorder.connect(audioContext.destination);
+    }
+
+    function sendAudio(session, pcmBuffer) {
+      if (!pcmBuffer || pcmBuffer.byteLength === 0) return;
+
+      const message = {
+        realtimeInput: {
+          audio: {
+            data: arrayBufferToBase64(pcmBuffer),
+            mimeType: "audio/pcm;rate=16000"
+          }
+        }
+      };
+
+      if (session.ws?.readyState === WebSocket.OPEN && session.setupComplete) {
+        session.ws.send(JSON.stringify(message));
+      } else if (session.pending.length < MAX_PENDING_CHUNKS) {
+        session.pending.push(message);
+      }
+    }
+
+    function flushPendingAudio(session) {
+      if (session.ws?.readyState !== WebSocket.OPEN) return;
+
+      while (session.pending.length) {
+        session.ws.send(JSON.stringify(session.pending.shift()));
+      }
+    }
+
+    function finishSession() {
+      if (!activeSession || !activeSession.isHolding) return;
+
+      const session = activeSession;
+      session.isHolding = false;
+      stopMicrophoneOnly();
+      levelBar.style.width = "0%";
+      setStatus("正在收尾", "live");
+
+      try {
+        if (session.ws?.readyState === WebSocket.OPEN) {
+          flushPendingAudio(session);
+          session.ws.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
+        }
+      } catch {
+        // The socket may already be closing. The final close timer below will clean up.
+      }
+
+      session.closeTimer = setTimeout(() => {
+        if (activeSession === session) stopSession({ immediate: true, keepText: true });
+      }, 2600);
+    }
+
+    async function stopSession(options = {}) {
+      const session = activeSession;
+      if (!session) return;
+
+      activeSession = null;
+      clearTimeout(session.closeTimer);
+      buttons.forEach((button) => button.classList.remove("is-active"));
+      stopMicrophoneOnly();
+
+      if (session.ws && session.ws.readyState <= WebSocket.OPEN) {
+        try {
+          session.ws.close(1000, "stop");
+        } catch {
+          // Ignore close errors from already-closed sockets.
+        }
+      }
+
+      if (options.immediate) {
+        levelBar.style.width = "0%";
+      }
+
+      if (!options.keepText) {
+        setText(inputText, "按住下方任意按钮开始", true);
+        setText(outputText, "译文会实时显示，并从手机当前音频设备播放", true);
+      }
+
+      setStatus("待机", "");
+    }
+
+    function handleServerContent(session, content) {
+      if (content.interrupted) {
+        resetPlayback();
+      }
+
+      const input = content.inputTranscription?.text;
+      const inputCode = content.inputTranscription?.languageCode;
+      const output = content.outputTranscription?.text;
+      const outputCode = content.outputTranscription?.languageCode;
+
+      if (input) setText(inputText, input);
+      if (inputCode) inputLang.textContent = inputCode;
+      if (output) setText(outputText, output);
+      if (outputCode) outputLang.textContent = outputCode;
+
+      for (const part of content.modelTurn?.parts || []) {
+        const inline = part.inlineData || part.inline_data;
+        if (inline?.data) {
+          playPcm(inline.data, parseRate(inline.mimeType || inline.mime_type) || OUTPUT_RATE);
+        }
+      }
+
+      if (content.turnComplete && activeSession === session && !session.isHolding) {
+        clearTimeout(session.closeTimer);
+        session.closeTimer = setTimeout(() => {
+          if (activeSession === session) stopSession({ immediate: true, keepText: true });
+        }, 700);
+      }
+    }
+
+    async function ensureAudioContext() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("当前浏览器不支持麦克风。请用 iPhone Safari 或 Chrome，并使用 HTTPS 打开。");
+      }
+
+      audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+
+      if (audioContext.state !== "running") {
+        await audioContext.resume();
+      }
+    }
+
+    function stopMicrophoneOnly() {
+      if (recorder) {
+        recorder.onaudioprocess = null;
+        try { recorder.disconnect(); } catch {}
+        recorder = null;
+      }
+
+      if (micSource) {
+        try { micSource.disconnect(); } catch {}
+        micSource = null;
+      }
+
+      if (micStream) {
+        stopTracks(micStream);
+        micStream = null;
+      }
+    }
+
+    function stopTracks(stream) {
+      for (const track of stream.getTracks()) {
+        track.stop();
+      }
+    }
+
+    function resampleToPcm(input, inputRate, outputRate) {
+      if (!input.length) return new ArrayBuffer(0);
+
+      const ratio = inputRate / outputRate;
+      const outputLength = Math.max(1, Math.floor(input.length / ratio));
+      const buffer = new ArrayBuffer(outputLength * 2);
+      const view = new DataView(buffer);
+
+      for (let i = 0; i < outputLength; i += 1) {
+        const index = i * ratio;
+        const before = Math.floor(index);
+        const after = Math.min(before + 1, input.length - 1);
+        const weight = index - before;
+        const sample = input[before] * (1 - weight) + input[after] * weight;
+        const clipped = Math.max(-1, Math.min(1, sample));
+        const pcm = clipped < 0 ? clipped * 0x8000 : clipped * 0x7fff;
+        view.setInt16(i * 2, pcm, true);
+      }
+
+      return buffer;
+    }
+
+    function updateLevel(samples) {
+      let total = 0;
+      for (let i = 0; i < samples.length; i += 1) {
+        total += samples[i] * samples[i];
+      }
+
+      const rms = Math.sqrt(total / samples.length);
+      const level = Math.min(100, Math.max(3, Math.round(rms * 420)));
+      levelBar.style.width = `${level}%`;
+    }
+
+    function playPcm(base64, sampleRate) {
+      if (!audioContext) return;
+
+      const bytes = base64ToBytes(base64);
+      if (bytes.byteLength < 2) return;
+
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      const frameCount = Math.floor(bytes.byteLength / 2);
+      const audioBuffer = audioContext.createBuffer(1, frameCount, sampleRate);
+      const channel = audioBuffer.getChannelData(0);
+
+      for (let i = 0; i < frameCount; i += 1) {
+        channel[i] = view.getInt16(i * 2, true) / 32768;
+      }
+
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioContext.destination);
+      source.onended = () => playingSources.delete(source);
+
+      const now = audioContext.currentTime;
+      nextPlayTime = Math.max(nextPlayTime, now + 0.035);
+      source.start(nextPlayTime);
+      nextPlayTime += audioBuffer.duration;
+      playingSources.add(source);
+    }
+
+    function resetPlayback() {
+      for (const source of playingSources) {
+        try { source.stop(); } catch {}
+      }
+      playingSources.clear();
+      nextPlayTime = audioContext ? audioContext.currentTime : 0;
+    }
+
+    function arrayBufferToBase64(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      const chunkSize = 0x8000;
+
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+      }
+
+      return btoa(binary);
+    }
+
+    function base64ToBytes(base64) {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+
+      for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      return bytes;
+    }
+
+    function parseRate(mimeType) {
+      const match = /rate=(\d+)/.exec(mimeType || "");
+      return match ? Number(match[1]) : null;
+    }
+
+    function setText(node, value, muted = false) {
+      node.textContent = value;
+      node.classList.toggle("placeholder", muted);
+      node.scrollTop = node.scrollHeight;
+    }
+
+    function setStatus(text, mode) {
+      statusText.textContent = text;
+      app.classList.toggle("is-live", mode === "live");
+      app.classList.toggle("is-error", mode === "error");
+      statusPill.title = text;
+    }
+
+    function showError(message) {
+      setStatus("错误", "error");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 4400);
+    }
+  </script>
+</body>
+</html>
