@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Gemini Live 实时翻译测试版</title>
+  <title>Gemini Live 实时翻译</title>
 
   <style>
     :root {
@@ -230,7 +230,7 @@
     }
 
     .log {
-      max-height: 120px;
+      max-height: 130px;
       overflow: auto;
       padding: 10px 12px;
       border-radius: 16px;
@@ -273,7 +273,7 @@
     <header>
       <div>
         <h1>Gemini Live 实时翻译</h1>
-        <p class="sub">点一下开始，再点一下停止。不要长按。请用 localhost 或 HTTPS 打开。</p>
+        <p class="sub">点一下开始，再点一下停止。请用 localhost 或 HTTPS 打开。</p>
       </div>
 
       <div class="status">
@@ -333,6 +333,7 @@
     const INPUT_RATE = 16000;
     const OUTPUT_RATE = 24000;
     const CHUNK_MS = 100;
+    const MAX_PENDING_AUDIO = 80;
 
     const app = document.getElementById("app");
     const statusText = document.getElementById("statusText");
@@ -352,6 +353,13 @@
       en: "English",
       vi: "Tiếng Việt"
     };
+
+    const setupVariantNames = [
+      "修正版：转写字段放 setup 顶层",
+      "官方文档版：全部放 generationConfig",
+      "兼容版：全部放 setup 顶层",
+      "极简版：只发送 model，适配已锁定 token"
+    ];
 
     let audioContext = null;
     let micStream = null;
@@ -398,7 +406,9 @@
         running: true,
         pending: [],
         closeTimer: null,
-        setupTimer: null
+        setupTimer: null,
+        setupVariantIndex: 0,
+        manualStop: false
       };
 
       buttons.forEach((b) => b.classList.toggle("active", b === button));
@@ -414,7 +424,7 @@
       floatQueue = [];
       resetPlayback();
 
-      log("开始启动。");
+      log("开始启动。1007 自动重试已开启。");
 
       try {
         await ensureBrowserReady();
@@ -451,45 +461,36 @@
     }
 
     function openWebSocket(s) {
+      clearTimeout(s.setupTimer);
+
+      const variant = s.setupVariantIndex;
       const wsUrl = `${WS_ENDPOINT}?access_token=${encodeURIComponent(ACCESS_TOKEN)}`;
       const ws = new WebSocket(wsUrl);
 
       s.ws = ws;
+      s.setupComplete = false;
 
-      log("正在连接 WebSocket...");
+      log(`正在连接 WebSocket，setup 方案 ${variant + 1}/${setupVariantNames.length}：${setupVariantNames[variant]}`);
 
       s.setupTimer = setTimeout(() => {
-        if (session === s && !s.setupComplete) {
-          showError("Gemini 没有返回 setupComplete。可能是 token 过期、token 已使用过，或 token 创建时锁定的配置与当前按钮语言不一致。");
-          log("setupComplete 超时。");
-          stopSession(true, true);
+        if (session === s && !s.setupComplete && s.ws === ws) {
+          log("setupComplete 超时，准备尝试下一种 setup 结构。");
+          retrySetupVariant(s, "setupComplete 超时");
         }
       }, 10000);
 
       ws.onopen = () => {
-        if (session !== s) return;
+        if (session !== s || s.ws !== ws) return;
 
-        log("WebSocket 已打开，发送 setup。");
-
-        const setupMessage = {
-          setup: {
-            model: `models/${MODEL}`,
-            generationConfig: {
-              responseModalities: ["AUDIO"],
-              inputAudioTranscription: {},
-              outputAudioTranscription: {},
-              translationConfig: {
-                targetLanguageCode: s.targetLanguageCode,
-                echoTargetLanguage: true
-              }
-            }
-          }
-        };
-
+        const setupMessage = buildSetupMessage(s, variant);
+        log("WebSocket 已打开，发送 setup：" + setupVariantNames[variant]);
+        log("setup JSON：" + JSON.stringify(setupMessage));
         ws.send(JSON.stringify(setupMessage));
       };
 
       ws.onmessage = (event) => {
+        if (session !== s || s.ws !== ws) return;
+
         let data;
 
         try {
@@ -502,15 +503,22 @@
         if (data.setupComplete) {
           s.setupComplete = true;
           clearTimeout(s.setupTimer);
-          log("收到 setupComplete。");
+          log("收到 setupComplete。当前可用 setup 方案：" + setupVariantNames[variant]);
+          setText(outputText, "已连接 Gemini Live API，请开始说话。", true);
           flushPendingAudio(s);
           return;
         }
 
         if (data.error) {
           const message = data.error.message || JSON.stringify(data.error);
-          showError(message);
           log("API 错误：" + message);
+
+          if (!s.setupComplete && /invalid|unknown|json|payload|field/i.test(message)) {
+            retrySetupVariant(s, message);
+            return;
+          }
+
+          showError(message);
           stopSession(true, true);
           return;
         }
@@ -521,15 +529,105 @@
       };
 
       ws.onerror = () => {
-        log("WebSocket error。");
-        showError("WebSocket 连接失败。请检查网络是否能访问 Google，或 token 是否仍有效。");
+        if (session !== s || s.ws !== ws) return;
+        log("WebSocket error。等待 close code 判断。");
       };
 
       ws.onclose = (event) => {
-        log(`WebSocket 关闭：code=${event.code || ""} reason=${event.reason || "无"}`);
+        if (session !== s || s.ws !== ws) return;
+
+        const reason = event.reason || "无";
+        log(`WebSocket 关闭：code=${event.code || ""} reason=${reason}`);
+
+        if (!s.manualStop && !s.setupComplete && event.code === 1007) {
+          retrySetupVariant(s, `1007：${reason}`);
+          return;
+        }
 
         if (session === s) {
+          if (!s.manualStop) {
+            showError(`WebSocket 已关闭：code=${event.code || ""}，reason=${reason}`);
+          }
           stopSession(true, true);
+        }
+      };
+    }
+
+    function retrySetupVariant(s, reason) {
+      if (session !== s) return;
+
+      clearTimeout(s.setupTimer);
+
+      try {
+        if (s.ws && s.ws.readyState <= WebSocket.OPEN) {
+          s.ws.onclose = null;
+          s.ws.close(1000, "retry setup");
+        }
+      } catch {}
+
+      if (s.setupVariantIndex < setupVariantNames.length - 1) {
+        s.setupVariantIndex += 1;
+        s.setupComplete = false;
+        log(`上一种 setup 不可用：${reason}`);
+        log("自动切换下一种 setup 结构。");
+        openWebSocket(s);
+      } else {
+        log(`所有 setup 结构都失败。最后原因：${reason}`);
+        showError("所有 setup 结构都失败。请看下方日志里的最后一个 reason，通常是 token 过期、token 已使用过，或 token 创建时锁定配置不匹配。");
+        stopSession(true, true);
+      }
+    }
+
+    function buildSetupMessage(s, variant) {
+      const model = `models/${MODEL}`;
+      const translationConfig = {
+        targetLanguageCode: s.targetLanguageCode,
+        echoTargetLanguage: true
+      };
+
+      if (variant === 0) {
+        return {
+          setup: {
+            model,
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              translationConfig
+            }
+          }
+        };
+      }
+
+      if (variant === 1) {
+        return {
+          setup: {
+            model,
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              inputAudioTranscription: {},
+              outputAudioTranscription: {},
+              translationConfig
+            }
+          }
+        };
+      }
+
+      if (variant === 2) {
+        return {
+          setup: {
+            model,
+            responseModalities: ["AUDIO"],
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
+            translationConfig
+          }
+        };
+      }
+
+      return {
+        setup: {
+          model
         }
       };
     }
@@ -660,6 +758,9 @@
         s.ws.send(JSON.stringify(message));
       } else {
         s.pending.push(message);
+        if (s.pending.length > MAX_PENDING_AUDIO) {
+          s.pending.shift();
+        }
       }
     }
 
@@ -714,6 +815,7 @@
 
       if (!s) return;
 
+      s.manualStop = true;
       session = null;
 
       clearTimeout(s.closeTimer);
@@ -936,7 +1038,7 @@
 
       toastTimer = setTimeout(() => {
         toast.classList.remove("show");
-      }, 7000);
+      }, 8000);
     }
 
     function log(message) {
