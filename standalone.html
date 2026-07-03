@@ -26,6 +26,9 @@
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     html,
@@ -43,6 +46,7 @@
     body {
       min-height: 100svh;
       padding: env(safe-area-inset-top) 14px calc(env(safe-area-inset-bottom) + 14px);
+      touch-action: manipulation;
     }
 
     .app {
@@ -225,6 +229,8 @@
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
       font: inherit;
       touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
       user-select: none;
       display: flex;
       flex-direction: column;
@@ -371,9 +377,10 @@
   <div class="toast" id="toast" role="alert"></div>
 
   <script>
-    const GEMINI_API_KEY = "AQ.Ab8RN6KQZ18otzzz3E3jzMnGV4UZrN-xsNfMx99yklpFlbgCaQ";
+    const GEMINI_API_KEY = "AQ.Ab8RN6Jh8NniYwPjc_rObG8lVY47qiLr-9i9Pjqx6OLPkaDiyA";
     const GEMINI_MODEL = "gemini-3.5-live-translate-preview";
     const GEMINI_WS_URL = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
+    const GEMINI_EPHEMERAL_WS_URL = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained";
     const INPUT_RATE = 16000;
     const OUTPUT_RATE = 24000;
     const MAX_PENDING_CHUNKS = 45;
@@ -405,11 +412,31 @@
     let toastTimer;
     let nextPlayTime = 0;
     let playingSources = new Set();
+    let lastTouchAt = 0;
+
+    document.addEventListener("selectstart", (event) => event.preventDefault());
+    document.addEventListener("copy", (event) => event.preventDefault());
+    document.addEventListener("dragstart", (event) => event.preventDefault());
 
     buttons.forEach((button) => {
       button.addEventListener("contextmenu", (event) => event.preventDefault());
+      button.addEventListener("touchstart", (event) => {
+        event.preventDefault();
+        lastTouchAt = Date.now();
+        if (activeSession?.button !== button) startSession(button);
+      }, { passive: false });
+      button.addEventListener("touchend", (event) => {
+        event.preventDefault();
+        finishSession();
+      }, { passive: false });
+      button.addEventListener("touchcancel", (event) => {
+        event.preventDefault();
+        finishSession();
+      }, { passive: false });
+      button.addEventListener("touchmove", (event) => event.preventDefault(), { passive: false });
       button.addEventListener("pointerdown", (event) => {
         event.preventDefault();
+        if (Date.now() - lastTouchAt < 500) return;
         button.setPointerCapture?.(event.pointerId);
         startSession(button);
       });
@@ -473,33 +500,21 @@
     }
 
     function openGeminiSocket(session) {
-      const url = `${GEMINI_WS_URL}?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+      session.authRetryUsed = false;
+      connectGeminiSocket(session, "apiKey");
+    }
+
+    function connectGeminiSocket(session, authMode) {
+      const url = authMode === "ephemeral"
+        ? `${GEMINI_EPHEMERAL_WS_URL}?access_token=${encodeURIComponent(GEMINI_API_KEY)}`
+        : `${GEMINI_WS_URL}?key=${encodeURIComponent(GEMINI_API_KEY)}`;
       const ws = new WebSocket(url);
       session.ws = ws;
+      session.authMode = authMode;
 
       ws.addEventListener("open", () => {
         if (activeSession !== session) return;
-        ws.send(JSON.stringify({
-          setup: {
-            model: `models/${GEMINI_MODEL}`,
-            generationConfig: {
-              responseModalities: ["AUDIO"],
-              translationConfig: {
-                targetLanguageCode: session.target,
-                echoTargetLanguage: false
-              }
-            },
-            inputAudioTranscription: {},
-            outputAudioTranscription: {},
-            realtimeInputConfig: {
-              automaticActivityDetection: {
-                disabled: false,
-                prefixPaddingMs: 120,
-                silenceDurationMs: 500
-              }
-            }
-          }
-        }));
+        ws.send(JSON.stringify(createSetupMessage(session)));
       });
 
       ws.addEventListener("message", (event) => {
@@ -530,16 +545,51 @@
       });
 
       ws.addEventListener("error", () => {
-        if (activeSession === session) {
+        if (activeSession === session && session.setupComplete) {
           showError("Gemini WebSocket 连接失败。你的手机网络需要能访问 Google。");
         }
       });
 
-      ws.addEventListener("close", () => {
-        if (activeSession === session) {
-          stopSession({ immediate: true, keepText: true });
+      ws.addEventListener("close", (event) => {
+        if (activeSession !== session) return;
+
+        const reason = event.reason || `WebSocket close ${event.code}`;
+        if (!session.setupComplete && authMode === "apiKey" && !session.authRetryUsed) {
+          session.authRetryUsed = true;
+          setStatus("尝试令牌模式", "live");
+          connectGeminiSocket(session, "ephemeral");
+          return;
         }
+
+        if (!session.setupComplete) {
+          showError(`Gemini 认证失败：${reason}`);
+        }
+        stopSession({ immediate: true, keepText: true });
       });
+    }
+
+    function createSetupMessage(session) {
+      return {
+        setup: {
+          model: `models/${GEMINI_MODEL}`,
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            translationConfig: {
+              targetLanguageCode: session.target,
+              echoTargetLanguage: false
+            }
+          },
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
+          realtimeInputConfig: {
+            automaticActivityDetection: {
+              disabled: false,
+              prefixPaddingMs: 120,
+              silenceDurationMs: 500
+            }
+          }
+        }
+      };
     }
 
     async function startMicrophone(session) {
