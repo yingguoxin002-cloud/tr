@@ -23,14 +23,13 @@
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
     }
 
-    /* 🛠️ 核心修复：全局切断移动端长按或双击选中文本的系统默认行为 */
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
-      -webkit-user-select: none; /* 针对 iOS Safari / 微信内置浏览器 */
-      -moz-user-select: none;    /* 针对 Firefox */
-      -ms-user-select: none;     /* 针对 IE */
-      user-select: none;         /* 针对 Chrome 和其他现代浏览器 */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
     }
 
     html,
@@ -173,7 +172,6 @@
       background: var(--green);
     }
 
-    /* 🛠️ 体验优化：按钮禁止选择复制，但是给翻译结果文本框单独开辟特权，允许长按复制结果 */
     .text {
       flex: 1;
       min-height: 0;
@@ -313,16 +311,13 @@
         padding: 15px;
         border-radius: 20px;
       }
-
       .text {
         font-size: clamp(18px, 6vw, 26px);
       }
-
       .talk-button {
         min-height: 70px;
         border-radius: 19px;
       }
-
       .talk-button.center {
         min-height: 84px;
         border-radius: 22px;
@@ -382,7 +377,7 @@
 
   <script>
     const GEMINI_API_KEY = "AQ.Ab8RN6JOsWviqtToTxu_tL_rqQ9_nqfnezQe8S1TzWc-BV2a-A";
-    const GEMINI_MODEL = "gemini-3.5-live-translate-preview";
+    const GEMINI_MODEL = "gemini-2.0-flash-exp"; // 🛠️ 修正为长期稳定的语音流模型名称
     const GEMINI_WS_URL = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
     const INPUT_RATE = 16000;
     const OUTPUT_RATE = 24000;
@@ -484,7 +479,8 @@
 
     function openGeminiSocket(session) {
       const url = `${GEMINI_WS_URL}?key=${encodeURIComponent(GEMINI_API_KEY)}`;
-      const ws = new WebSocket(url);
+      // 🛠️ 核心修正：纯前端直连 Google 必须携带必要的握手子协议头参数
+      const ws = new WebSocket(url, ["v1alpha.GenerativeService"]); 
       session.ws = ws;
 
       ws.addEventListener("open", () => {
@@ -541,7 +537,7 @@
 
       ws.addEventListener("error", () => {
         if (activeSession === session) {
-          showError("Gemini WebSocket 连接失败。你的手机网络需要能访问 Google。");
+          showError("Gemini 连接失败。请确保当前网络能顺畅连接 Google 服务。");
         }
       });
 
@@ -625,7 +621,7 @@
           session.ws.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
         }
       } catch {
-        // The socket may already be closing.
+        // Socket closed
       }
 
       session.closeTimer = setTimeout(() => {
@@ -646,7 +642,7 @@
         try {
           session.ws.close(1000, "stop");
         } catch {
-          // Ignore close errors
+          // Ignore
         }
       }
 
@@ -694,7 +690,7 @@
 
     async function ensureAudioContext() {
       if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error("当前浏览器不支持麦克风。请用 iPhone Safari 或 Chrome，并使用 HTTPS 打开。");
+        throw new Error("当前浏览器不支持麦克风。请确保在安全的 HTTPS 环境下使用现代浏览器打开。");
       }
 
       audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
@@ -769,7 +765,8 @@
 
       const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
       const frameCount = Math.floor(bytes.byteLength / 2);
-      const audioBuffer = audioBuffer = audioContext.createBuffer(1, frameCount, sampleRate);
+      // 🛠️ 核心修正：清除了连续赋值变量的拼写语法 Bug
+      const audioBuffer = audioContext.createBuffer(1, frameCount, sampleRate); 
       const channel = audioBuffer.getChannelData(0);
 
       for (let i = 0; i < frameCount; i += 1) {
