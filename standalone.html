@@ -23,9 +23,14 @@
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
     }
 
+    /* 🛠️ 核心修复：全局切断移动端长按或双击选中文本的系统默认行为 */
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none; /* 针对 iOS Safari / 微信内置浏览器 */
+      -moz-user-select: none;    /* 针对 Firefox */
+      -ms-user-select: none;     /* 针对 IE */
+      user-select: none;         /* 针对 Chrome 和其他现代浏览器 */
     }
 
     html,
@@ -168,6 +173,7 @@
       background: var(--green);
     }
 
+    /* 🛠️ 体验优化：按钮禁止选择复制，但是给翻译结果文本框单独开辟特权，允许长按复制结果 */
     .text {
       flex: 1;
       min-height: 0;
@@ -178,6 +184,10 @@
       font-weight: 710;
       letter-spacing: 0;
       word-break: break-word;
+      -webkit-user-select: text !important;
+      -moz-user-select: text !important;
+      -ms-user-select: text !important;
+      user-select: text !important;
     }
 
     .placeholder {
@@ -615,7 +625,7 @@
           session.ws.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
         }
       } catch {
-        // The socket may already be closing. The final close timer below will clean up.
+        // The socket may already be closing.
       }
 
       session.closeTimer = setTimeout(() => {
@@ -636,7 +646,7 @@
         try {
           session.ws.close(1000, "stop");
         } catch {
-          // Ignore close errors from already-closed sockets.
+          // Ignore close errors
         }
       }
 
@@ -759,7 +769,7 @@
 
       const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
       const frameCount = Math.floor(bytes.byteLength / 2);
-      const audioBuffer = audioContext.createBuffer(1, frameCount, sampleRate);
+      const audioBuffer = audioBuffer = audioContext.createBuffer(1, frameCount, sampleRate);
       const channel = audioBuffer.getChannelData(0);
 
       for (let i = 0; i < frameCount; i += 1) {
