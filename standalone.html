@@ -1,56 +1,43 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>面对面实时翻译</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Gemini 实时语音翻译</title>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #0b0f14;
-      --panel: #121821;
-      --panel-2: #192231;
-      --text: #f6f7fb;
-      --muted: #99a4b4;
-      --line: rgba(255, 255, 255, 0.1);
-      --green: #2bd576;
+      --bg: #08111f;
+      --card: rgba(255,255,255,.08);
+      --card2: rgba(255,255,255,.12);
+      --line: rgba(255,255,255,.14);
+      --text: #f7fbff;
+      --muted: #9fb1c8;
+      --green: #2ee57c;
       --blue: #4da3ff;
       --orange: #ff9f43;
       --red: #ff5c7a;
-      --shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
     }
 
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
     }
 
-    html,
     body {
       margin: 0;
-      min-height: 100%;
+      min-height: 100svh;
       background:
-        radial-gradient(circle at 22% 0%, rgba(77, 163, 255, 0.16), transparent 32rem),
-        radial-gradient(circle at 82% 18%, rgba(43, 213, 118, 0.12), transparent 28rem),
+        radial-gradient(circle at 20% 0%, rgba(77,163,255,.22), transparent 34rem),
+        radial-gradient(circle at 80% 12%, rgba(46,229,124,.16), transparent 30rem),
         var(--bg);
       color: var(--text);
-      overscroll-behavior: none;
-    }
-
-    body {
-      min-height: 100svh;
       padding: env(safe-area-inset-top) 14px calc(env(safe-area-inset-bottom) + 14px);
     }
 
     .app {
-      width: min(430px, 100%);
+      width: min(440px, 100%);
       min-height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px);
       margin: 0 auto;
       display: grid;
@@ -58,146 +45,112 @@
       gap: 14px;
     }
 
-    .topbar {
+    header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: flex-start;
       gap: 12px;
-      padding: 12px 2px 2px;
+      padding-top: 12px;
     }
 
-    .title {
-      min-width: 0;
-    }
-
-    .title h1 {
+    h1 {
       margin: 0;
-      font-size: 22px;
-      line-height: 1.1;
-      font-weight: 760;
-      letter-spacing: 0;
+      font-size: 23px;
+      line-height: 1.15;
     }
 
-    .title p {
-      margin: 6px 0 0;
+    .subtitle {
+      margin: 7px 0 0;
       color: var(--muted);
       font-size: 13px;
-      line-height: 1.35;
+      line-height: 1.4;
     }
 
-    .status-pill {
+    .status {
       flex: 0 0 auto;
+      max-width: 150px;
+      height: 34px;
       display: inline-flex;
       align-items: center;
-      min-height: 34px;
-      max-width: 148px;
-      padding: 0 11px;
-      border: 1px solid var(--line);
+      gap: 7px;
+      padding: 0 12px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.06);
-      color: #cdd5df;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.07);
+      color: #dce7f5;
       font-size: 12px;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
-    .status-dot {
-      width: 7px;
-      height: 7px;
-      margin-right: 7px;
+    .dot {
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: var(--muted);
-      box-shadow: 0 0 0 0 rgba(153, 164, 180, 0);
     }
 
-    .is-live .status-dot {
+    .live .dot {
       background: var(--green);
+      box-shadow: 0 0 0 rgba(46,229,124,.5);
       animation: pulse 1.25s infinite;
     }
 
-    .is-error .status-dot {
+    .error .dot {
       background: var(--red);
     }
 
     @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(43, 213, 118, 0.44); }
-      100% { box-shadow: 0 0 0 12px rgba(43, 213, 118, 0); }
+      0% { box-shadow: 0 0 0 0 rgba(46,229,124,.45); }
+      100% { box-shadow: 0 0 0 12px rgba(46,229,124,0); }
     }
 
-    .conversation {
+    .panes {
       min-height: 0;
       display: grid;
       gap: 12px;
-      align-content: stretch;
     }
 
     .pane {
-      min-height: 180px;
-      padding: 18px;
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.045));
-      box-shadow: var(--shadow);
+      min-height: 190px;
       display: flex;
       flex-direction: column;
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, var(--card2), var(--card));
+      box-shadow: 0 18px 46px rgba(0,0,0,.28);
       overflow: hidden;
     }
 
-    .pane-header {
+    .pane-head {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      align-items: center;
+      gap: 10px;
       margin-bottom: 12px;
       color: var(--muted);
       font-size: 13px;
-    }
-
-    .pane-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-    }
-
-    .mini-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--blue);
-    }
-
-    .pane.output .mini-dot {
-      background: var(--green);
     }
 
     .text {
       flex: 1;
       min-height: 0;
       overflow: auto;
-      color: var(--text);
-      font-size: clamp(20px, 7vw, 32px);
+      font-size: clamp(22px, 7vw, 34px);
       line-height: 1.22;
-      font-weight: 710;
-      letter-spacing: 0;
+      font-weight: 750;
       word-break: break-word;
-      -webkit-user-select: text !important;
-      -moz-user-select: text !important;
-      -ms-user-select: text !important;
-      user-select: text !important;
     }
 
     .placeholder {
-      color: rgba(246, 247, 251, 0.38);
-      font-weight: 650;
+      color: rgba(247,251,255,.38);
     }
 
     .meter {
-      height: 4px;
       margin-top: 14px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.08);
+      height: 4px;
+      border-radius: 99px;
+      background: rgba(255,255,255,.1);
       overflow: hidden;
     }
 
@@ -207,97 +160,89 @@
       height: 100%;
       border-radius: inherit;
       background: linear-gradient(90deg, var(--blue), var(--green));
-      transition: width 80ms linear;
+      transition: width 70ms linear;
     }
 
     .controls {
       display: grid;
-      grid-template-columns: 1fr 1.35fr 1fr;
+      grid-template-columns: 1fr 1.25fr 1fr;
       gap: 10px;
       padding: 12px;
-      border: 1px solid var(--line);
       border-radius: 28px;
-      background: rgba(12, 17, 24, 0.84);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(22px);
+      border: 1px solid var(--line);
+      background: rgba(6,12,22,.86);
+      box-shadow: 0 18px 46px rgba(0,0,0,.34);
+      backdrop-filter: blur(20px);
     }
 
-    .talk-button {
+    button {
       appearance: none;
-      width: 100%;
-      min-height: 82px;
       border: 0;
       border-radius: 22px;
+      min-height: 82px;
+      padding: 10px 8px;
       color: white;
-      background: var(--panel-2);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
       font: inherit;
       touch-action: none;
       user-select: none;
       display: flex;
       flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       gap: 6px;
-      transform: translateY(0) scale(1);
-      transition: transform 130ms ease, filter 130ms ease, box-shadow 130ms ease;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
     }
 
-    .talk-button strong {
+    button strong {
       font-size: 13px;
       line-height: 1.15;
-      font-weight: 790;
-      letter-spacing: 0;
       text-align: center;
-      word-break: keep-all;
-      overflow-wrap: anywhere;
     }
 
-    .talk-button span {
-      color: rgba(255, 255, 255, 0.74);
+    button span {
       font-size: 11px;
-      line-height: 1.1;
+      color: rgba(255,255,255,.75);
     }
 
-    .talk-button.center {
+    .left {
+      background: linear-gradient(180deg, #4da3ff, #286bdd);
+    }
+
+    .center {
       min-height: 98px;
       border-radius: 26px;
-      background: linear-gradient(180deg, #24d36f, #159850);
-      box-shadow: 0 18px 38px rgba(43, 213, 118, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+      background: linear-gradient(180deg, #2ee57c, #13994f);
+      box-shadow: 0 16px 34px rgba(46,229,124,.22), inset 0 0 0 1px rgba(255,255,255,.14);
     }
 
-    .talk-button.left {
-      background: linear-gradient(180deg, #4da3ff, #266bd6);
+    .right {
+      background: linear-gradient(180deg, #ffb45b, #db7429);
     }
 
-    .talk-button.right {
-      background: linear-gradient(180deg, #ffaf55, #de7128);
-    }
-
-    .talk-button.is-active {
-      transform: translateY(2px) scale(0.98);
+    button.active {
+      transform: translateY(2px) scale(.98);
       filter: brightness(1.08);
-      box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+      box-shadow: 0 0 0 4px rgba(255,255,255,.1), inset 0 0 0 1px rgba(255,255,255,.24);
     }
 
     .toast {
       position: fixed;
       left: 50%;
       bottom: calc(env(safe-area-inset-bottom) + 132px);
-      z-index: 8;
-      width: min(390px, calc(100vw - 28px));
+      z-index: 10;
+      width: min(400px, calc(100vw - 28px));
       padding: 12px 14px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 16px;
-      background: rgba(16, 22, 32, 0.94);
-      color: #f8d7df;
-      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(17,24,36,.96);
+      color: #ffd8df;
+      font-size: 13px;
+      line-height: 1.4;
       transform: translate(-50%, 12px);
       opacity: 0;
       pointer-events: none;
-      transition: opacity 180ms ease, transform 180ms ease;
-      font-size: 13px;
-      line-height: 1.35;
+      transition: 160ms ease;
+      box-shadow: 0 16px 38px rgba(0,0,0,.35);
     }
 
     .toast.show {
@@ -307,201 +252,203 @@
 
     @media (max-height: 720px) {
       .pane {
-        min-height: 142px;
+        min-height: 145px;
         padding: 15px;
-        border-radius: 20px;
       }
+
       .text {
-        font-size: clamp(18px, 6vw, 26px);
+        font-size: clamp(18px, 6vw, 27px);
       }
-      .talk-button {
+
+      button {
         min-height: 70px;
-        border-radius: 19px;
       }
-      .talk-button.center {
+
+      .center {
         min-height: 84px;
-        border-radius: 22px;
       }
     }
   </style>
 </head>
+
 <body>
   <main class="app" id="app">
-    <header class="topbar">
-      <div class="title">
-        <h1>面对面实时翻译</h1>
-        <p>按住按钮就开始翻译，松开后自动收尾播放</p>
+    <header>
+      <div>
+        <h1>Gemini 实时语音翻译</h1>
+        <p class="subtitle">按住说话，松开结束。建议用 Chrome / Safari，并通过 localhost 或 HTTPS 打开。</p>
       </div>
-      <div class="status-pill" id="statusPill">
-        <span class="status-dot"></span>
+      <div class="status" id="statusBox">
+        <i class="dot"></i>
         <span id="statusText">待机</span>
       </div>
     </header>
 
-    <section class="conversation" aria-live="polite">
-      <article class="pane input">
-        <div class="pane-header">
-          <div class="pane-label"><span class="mini-dot"></span><span id="inputLabel">正在听</span></div>
+    <section class="panes">
+      <article class="pane">
+        <div class="pane-head">
+          <span id="inputTitle">原文</span>
           <span id="inputLang">自动识别</span>
         </div>
-        <div class="text" id="inputText"><span class="placeholder">按住下方任意按钮开始</span></div>
+        <div class="text placeholder" id="inputText">按住下方按钮开始说话</div>
         <div class="meter"><span id="levelBar"></span></div>
       </article>
 
-      <article class="pane output">
-        <div class="pane-header">
-          <div class="pane-label"><span class="mini-dot"></span><span id="outputLabel">翻译结果</span></div>
+      <article class="pane">
+        <div class="pane-head">
+          <span id="outputTitle">译文</span>
           <span id="outputLang">中文 / English / Tiếng Việt</span>
         </div>
-        <div class="text" id="outputText"><span class="placeholder">译文会实时显示，并从手机当前音频设备播放</span></div>
+        <div class="text placeholder" id="outputText">翻译结果会显示在这里，并自动播放语音</div>
       </article>
     </section>
 
-    <nav class="controls" aria-label="翻译方向">
-      <button class="talk-button left" data-target="en" data-title="中文 → 英语" data-hint="我说中文" type="button">
-        <strong>中文→英语</strong>
+    <nav class="controls">
+      <button class="left" data-target="en" data-title="中文 → 英语" type="button">
+        <strong>中文 → 英语</strong>
         <span>按住说话</span>
       </button>
-      <button class="talk-button center" data-target="zh-Hans" data-title="英/越 → 中文" data-hint="对方说话" type="button">
+
+      <button class="center" data-target="zh-CN" data-title="英/越 → 中文" type="button">
         <strong>翻译成中文</strong>
         <span>按住听对方</span>
       </button>
-      <button class="talk-button right" data-target="vi" data-title="中文 → 越南文" data-hint="我说中文" type="button">
-        <strong>中文→越南文</strong>
+
+      <button class="right" data-target="vi" data-title="中文 → 越南文" type="button">
+        <strong>中文 → 越南文</strong>
         <span>按住说话</span>
       </button>
     </nav>
   </main>
 
-  <div class="toast" id="toast" role="alert"></div>
+  <div class="toast" id="toast"></div>
 
   <script>
-    const GEMINI_API_KEY = "AQ.Ab8RN6JOsWviqtToTxu_tL_rqQ9_nqfnezQe8S1TzWc-BV2a-A";
-    const GEMINI_MODEL = "gemini-2.0-flash-exp"; // 🛠️ 修正为长期稳定的语音流模型名称
-    const GEMINI_WS_URL = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
-    const INPUT_RATE = 16000;
-    const OUTPUT_RATE = 24000;
-    const MAX_PENDING_CHUNKS = 45;
+    const GEMINI_API_KEY = "AQ.Ab8RN6IAGwTeCcpea80QcH_tQi9MSC_6yTF8NZ8k-G2s93D0mQ";
 
-    const labels = {
-      "zh-Hans": { output: "中文", mode: "英/越 → 中文" },
-      en: { output: "English", mode: "中文 → 英语" },
-      vi: { output: "Tiếng Việt", mode: "中文 → 越南文" }
-    };
+    const MODEL = "gemini-3.5-live-translate-preview";
+    const WS_URL = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
+
+    const INPUT_SAMPLE_RATE = 16000;
+    const DEFAULT_OUTPUT_SAMPLE_RATE = 24000;
+    const SEND_INTERVAL_MS = 100;
 
     const app = document.getElementById("app");
-    const statusPill = document.getElementById("statusPill");
     const statusText = document.getElementById("statusText");
-    const inputLabel = document.getElementById("inputLabel");
+    const inputTitle = document.getElementById("inputTitle");
     const inputLang = document.getElementById("inputLang");
-    const outputLabel = document.getElementById("outputLabel");
+    const outputTitle = document.getElementById("outputTitle");
     const outputLang = document.getElementById("outputLang");
     const inputText = document.getElementById("inputText");
     const outputText = document.getElementById("outputText");
     const levelBar = document.getElementById("levelBar");
     const toast = document.getElementById("toast");
-    const buttons = Array.from(document.querySelectorAll(".talk-button"));
+    const buttons = Array.from(document.querySelectorAll("button"));
 
-    let audioContext;
-    let micStream;
-    let micSource;
-    let recorder;
-    let activeSession;
-    let toastTimer;
+    const languageNames = {
+      "zh-CN": "中文",
+      "en": "English",
+      "vi": "Tiếng Việt"
+    };
+
+    let audioContext = null;
+    let micStream = null;
+    let micSource = null;
+    let processor = null;
+    let session = null;
+    let toastTimer = null;
+
+    let inputFloatQueue = [];
+    let sendTimer = null;
+
     let nextPlayTime = 0;
     let playingSources = new Set();
 
     buttons.forEach((button) => {
       button.addEventListener("contextmenu", (event) => event.preventDefault());
-      button.addEventListener("pointerdown", (event) => {
+
+      button.addEventListener("pointerdown", async (event) => {
         event.preventDefault();
         button.setPointerCapture?.(event.pointerId);
-        startSession(button);
+        await startTranslate(button);
       });
+
       button.addEventListener("pointerup", (event) => {
         event.preventDefault();
         button.releasePointerCapture?.(event.pointerId);
-        finishSession();
+        finishTranslate();
       });
-      button.addEventListener("pointercancel", finishSession);
-      button.addEventListener("lostpointercapture", () => {
-        if (activeSession?.button === button && activeSession.isHolding) finishSession();
-      });
+
+      button.addEventListener("pointercancel", finishTranslate);
     });
 
-    window.addEventListener("pagehide", () => stopSession({ immediate: true }));
+    window.addEventListener("pagehide", () => stopTranslate(true));
 
-    async function startSession(button) {
-      if (activeSession) {
-        await stopSession({ immediate: true });
+    async function startTranslate(button) {
+      if (session) {
+        stopTranslate(true);
       }
 
-      if (!GEMINI_API_KEY || GEMINI_API_KEY.includes("__GEMINI")) {
-        showError("这个 HTML 里还没有放 Gemini API key。");
-        return;
-      }
+      const targetLanguageCode = button.dataset.target;
+      const title = button.dataset.title;
 
-      const target = button.dataset.target;
-      const config = labels[target];
-      const session = {
-        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      session = {
         button,
-        target,
-        pending: [],
+        targetLanguageCode,
         setupComplete: false,
-        isHolding: true,
-        closeTimer: null,
-        ws: null
+        holding: true,
+        pendingAudio: [],
+        ws: null,
+        closeTimer: null
       };
-      activeSession = session;
 
-      buttons.forEach((item) => item.classList.toggle("is-active", item === button));
+      buttons.forEach((b) => b.classList.toggle("active", b === button));
       setStatus("连接中", "live");
-      setText(inputText, "正在打开麦克风...");
-      setText(outputText, "准备播放翻译...");
-      inputLabel.textContent = button.dataset.hint || "正在听";
-      outputLabel.textContent = config.mode;
+      setText(inputText, "正在打开麦克风...", true);
+      setText(outputText, "正在连接 Gemini...", true);
+      inputTitle.textContent = "正在听";
       inputLang.textContent = "自动识别";
-      outputLang.textContent = config.output;
+      outputTitle.textContent = title;
+      outputLang.textContent = languageNames[targetLanguageCode] || targetLanguageCode;
       levelBar.style.width = "0%";
       resetPlayback();
 
       try {
-        await ensureAudioContext();
-        openGeminiSocket(session);
-        await startMicrophone(session);
+        await ensureAudio();
+        openWebSocket(session);
+        await openMicrophone(session);
+        startSendLoop(session);
         setStatus("实时翻译中", "live");
       } catch (error) {
         showError(error.message || "启动失败");
-        stopSession({ immediate: true });
+        stopTranslate(true);
       }
     }
 
-    function openGeminiSocket(session) {
-      const url = `${GEMINI_WS_URL}?key=${encodeURIComponent(GEMINI_API_KEY)}`;
-      // 🛠️ 核心修正：纯前端直连 Google 必须携带必要的握手子协议头参数
-      const ws = new WebSocket(url, ["v1alpha.GenerativeService"]); 
-      session.ws = ws;
+    function openWebSocket(currentSession) {
+      const ws = new WebSocket(`${WS_URL}?key=${encodeURIComponent(GEMINI_API_KEY)}`);
+      currentSession.ws = ws;
 
       ws.addEventListener("open", () => {
-        if (activeSession !== session) return;
+        if (session !== currentSession) return;
+
         ws.send(JSON.stringify({
           setup: {
-            model: `models/${GEMINI_MODEL}`,
+            model: `models/${MODEL}`,
             generationConfig: {
               responseModalities: ["AUDIO"],
               inputAudioTranscription: {},
               outputAudioTranscription: {},
               translationConfig: {
-                targetLanguageCode: session.target,
+                targetLanguageCode: currentSession.targetLanguageCode,
                 echoTargetLanguage: false
-              },
-              realtimeInputConfig: {
-                automaticActivityDetection: {
-                  disabled: false,
-                  prefixPaddingMs: 120,
-                  silenceDurationMs: 500
-                }
+              }
+            },
+            realtimeInputConfig: {
+              automaticActivityDetection: {
+                disabled: false,
+                prefixPaddingMs: 100,
+                silenceDurationMs: 500
               }
             }
           }
@@ -509,7 +456,7 @@
       });
 
       ws.addEventListener("message", (event) => {
-        if (activeSession !== session && ws.readyState !== WebSocket.OPEN) return;
+        if (!event.data) return;
 
         let data;
         try {
@@ -519,192 +466,250 @@
         }
 
         if (data.setupComplete) {
-          session.setupComplete = true;
-          flushPendingAudio(session);
+          currentSession.setupComplete = true;
+          flushPendingAudio(currentSession);
           return;
         }
 
         if (data.error) {
           showError(data.error.message || "Gemini 返回错误");
-          stopSession({ immediate: true });
+          stopTranslate(true);
           return;
         }
 
         if (data.serverContent) {
-          handleServerContent(session, data.serverContent);
+          handleServerContent(currentSession, data.serverContent);
         }
       });
 
       ws.addEventListener("error", () => {
-        if (activeSession === session) {
-          showError("Gemini 连接失败。请确保当前网络能顺畅连接 Google 服务。");
+        if (session === currentSession) {
+          showError("WebSocket 连接失败，请确认网络可以访问 Google，并且 API Key 可用。");
         }
       });
 
       ws.addEventListener("close", () => {
-        if (activeSession === session) {
-          stopSession({ immediate: true, keepText: true });
+        if (session === currentSession) {
+          stopTranslate(true, true);
         }
       });
     }
 
-    async function startMicrophone(session) {
-      micStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1
-        }
-      });
-
-      if (activeSession !== session) {
-        stopTracks(micStream);
-        return;
-      }
-
-      micSource = audioContext.createMediaStreamSource(micStream);
-      recorder = audioContext.createScriptProcessor(4096, 1, 1);
-
-      recorder.onaudioprocess = (event) => {
-        if (activeSession !== session || !session.isHolding) return;
-
-        const samples = event.inputBuffer.getChannelData(0);
-        updateLevel(samples);
-        const pcm = resampleToPcm(samples, audioContext.sampleRate, INPUT_RATE);
-        sendAudio(session, pcm);
-      };
-
-      micSource.connect(recorder);
-      recorder.connect(audioContext.destination);
-    }
-
-    function sendAudio(session, pcmBuffer) {
-      if (!pcmBuffer || pcmBuffer.byteLength === 0) return;
-
-      const message = {
-        realtimeInput: {
-          audio: {
-            data: arrayBufferToBase64(pcmBuffer),
-            mimeType: "audio/pcm;rate=16000"
-          }
-        }
-      };
-
-      if (session.ws?.readyState === WebSocket.OPEN && session.setupComplete) {
-        session.ws.send(JSON.stringify(message));
-      } else if (session.pending.length < MAX_PENDING_CHUNKS) {
-        session.pending.push(message);
-      }
-    }
-
-    function flushPendingAudio(session) {
-      if (session.ws?.readyState !== WebSocket.OPEN) return;
-
-      while (session.pending.length) {
-        session.ws.send(JSON.stringify(session.pending.shift()));
-      }
-    }
-
-    function finishSession() {
-      if (!activeSession || !activeSession.isHolding) return;
-
-      const session = activeSession;
-      session.isHolding = false;
-      stopMicrophoneOnly();
-      levelBar.style.width = "0%";
-      setStatus("正在收尾", "live");
-
-      try {
-        if (session.ws?.readyState === WebSocket.OPEN) {
-          flushPendingAudio(session);
-          session.ws.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
-        }
-      } catch {
-        // Socket closed
-      }
-
-      session.closeTimer = setTimeout(() => {
-        if (activeSession === session) stopSession({ immediate: true, keepText: true });
-      }, 2600);
-    }
-
-    async function stopSession(options = {}) {
-      const session = activeSession;
-      if (!session) return;
-
-      activeSession = null;
-      clearTimeout(session.closeTimer);
-      buttons.forEach((button) => button.classList.remove("is-active"));
-      stopMicrophoneOnly();
-
-      if (session.ws && session.ws.readyState <= WebSocket.OPEN) {
-        try {
-          session.ws.close(1000, "stop");
-        } catch {
-          // Ignore
-        }
-      }
-
-      if (options.immediate) {
-        levelBar.style.width = "0%";
-      }
-
-      if (!options.keepText) {
-        setText(inputText, "按住下方任意按钮开始", true);
-        setText(outputText, "译文会实时显示，并从手机当前音频设备播放", true);
-      }
-
-      setStatus("待机", "");
-    }
-
-    function handleServerContent(session, content) {
-      if (content.interrupted) {
-        resetPlayback();
-      }
-
-      const input = content.inputTranscription?.text;
-      const inputCode = content.inputTranscription?.languageCode;
-      const output = content.outputTranscription?.text;
-      const outputCode = content.outputTranscription?.languageCode;
-
-      if (input) setText(inputText, input);
-      if (inputCode) inputLang.textContent = inputCode;
-      if (output) setText(outputText, output);
-      if (outputCode) outputLang.textContent = outputCode;
-
-      for (const part of content.modelTurn?.parts || []) {
-        const inline = part.inlineData || part.inline_data;
-        if (inline?.data) {
-          playPcm(inline.data, parseRate(inline.mimeType || inline.mime_type) || OUTPUT_RATE);
-        }
-      }
-
-      if (content.turnComplete && activeSession === session && !session.isHolding) {
-        clearTimeout(session.closeTimer);
-        session.closeTimer = setTimeout(() => {
-          if (activeSession === session) stopSession({ immediate: true, keepText: true });
-        }, 700);
-      }
-    }
-
-    async function ensureAudioContext() {
+    async function ensureAudio() {
       if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error("当前浏览器不支持麦克风。请确保在安全的 HTTPS 环境下使用现代浏览器打开。");
+        throw new Error("当前浏览器不支持麦克风，请使用 Chrome 或 Safari，并通过 localhost / HTTPS 打开。");
       }
 
-      audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
 
       if (audioContext.state !== "running") {
         await audioContext.resume();
       }
     }
 
-    function stopMicrophoneOnly() {
-      if (recorder) {
-        recorder.onaudioprocess = null;
-        try { recorder.disconnect(); } catch {}
-        recorder = null;
+    async function openMicrophone(currentSession) {
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+
+      if (session !== currentSession) {
+        stopTracks(micStream);
+        return;
+      }
+
+      micSource = audioContext.createMediaStreamSource(micStream);
+      processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+      processor.onaudioprocess = (event) => {
+        if (session !== currentSession || !currentSession.holding) return;
+
+        const input = event.inputBuffer.getChannelData(0);
+        updateLevel(input);
+
+        inputFloatQueue.push(new Float32Array(input));
+      };
+
+      micSource.connect(processor);
+
+      /*
+        ScriptProcessorNode 需要连接到 destination 才会持续触发。
+        这里不会把麦克风声音直接播放出来，因为 processor 没有写入输出 buffer。
+      */
+      processor.connect(audioContext.destination);
+    }
+
+    function startSendLoop(currentSession) {
+      stopSendLoop();
+
+      sendTimer = setInterval(() => {
+        if (session !== currentSession || !currentSession.holding) return;
+
+        const chunk = pullAudioChunk(audioContext.sampleRate, INPUT_SAMPLE_RATE, SEND_INTERVAL_MS);
+        if (!chunk) return;
+
+        sendPcmAudio(currentSession, chunk);
+      }, SEND_INTERVAL_MS);
+    }
+
+    function stopSendLoop() {
+      if (sendTimer) {
+        clearInterval(sendTimer);
+        sendTimer = null;
+      }
+    }
+
+    function pullAudioChunk(inputRate, outputRate, ms) {
+      const needInputSamples = Math.ceil(inputRate * ms / 1000);
+      const availableSamples = inputFloatQueue.reduce((sum, arr) => sum + arr.length, 0);
+
+      if (availableSamples < needInputSamples) {
+        return null;
+      }
+
+      const input = new Float32Array(needInputSamples);
+      let offset = 0;
+
+      while (offset < needInputSamples && inputFloatQueue.length) {
+        const first = inputFloatQueue[0];
+        const take = Math.min(first.length, needInputSamples - offset);
+
+        input.set(first.subarray(0, take), offset);
+        offset += take;
+
+        if (take === first.length) {
+          inputFloatQueue.shift();
+        } else {
+          inputFloatQueue[0] = first.subarray(take);
+        }
+      }
+
+      return resampleFloatToPcm16(input, inputRate, outputRate);
+    }
+
+    function sendPcmAudio(currentSession, pcmBuffer) {
+      const message = {
+        realtimeInput: {
+          audio: {
+            mimeType: "audio/pcm;rate=16000",
+            data: arrayBufferToBase64(pcmBuffer)
+          }
+        }
+      };
+
+      if (
+        currentSession.ws &&
+        currentSession.ws.readyState === WebSocket.OPEN &&
+        currentSession.setupComplete
+      ) {
+        currentSession.ws.send(JSON.stringify(message));
+      } else {
+        currentSession.pendingAudio.push(message);
+      }
+    }
+
+    function flushPendingAudio(currentSession) {
+      if (!currentSession.ws || currentSession.ws.readyState !== WebSocket.OPEN) return;
+
+      while (currentSession.pendingAudio.length) {
+        currentSession.ws.send(JSON.stringify(currentSession.pendingAudio.shift()));
+      }
+    }
+
+    function finishTranslate() {
+      if (!session || !session.holding) return;
+
+      const currentSession = session;
+      currentSession.holding = false;
+
+      stopSendLoop();
+
+      const finalChunk = pullRemainingAudio(audioContext.sampleRate, INPUT_SAMPLE_RATE);
+      if (finalChunk) {
+        sendPcmAudio(currentSession, finalChunk);
+      }
+
+      stopMicrophone();
+      levelBar.style.width = "0%";
+      setStatus("正在收尾", "live");
+
+      try {
+        if (currentSession.ws?.readyState === WebSocket.OPEN) {
+          flushPendingAudio(currentSession);
+          currentSession.ws.send(JSON.stringify({
+            realtimeInput: {
+              audioStreamEnd: true
+            }
+          }));
+        }
+      } catch {}
+
+      currentSession.closeTimer = setTimeout(() => {
+        if (session === currentSession) {
+          stopTranslate(true, true);
+        }
+      }, 3000);
+    }
+
+    function pullRemainingAudio(inputRate, outputRate) {
+      const availableSamples = inputFloatQueue.reduce((sum, arr) => sum + arr.length, 0);
+      if (!availableSamples) return null;
+
+      const input = new Float32Array(availableSamples);
+      let offset = 0;
+
+      while (inputFloatQueue.length) {
+        const first = inputFloatQueue.shift();
+        input.set(first, offset);
+        offset += first.length;
+      }
+
+      return resampleFloatToPcm16(input, inputRate, outputRate);
+    }
+
+    function stopTranslate(immediate = false, keepText = false) {
+      const currentSession = session;
+      if (!currentSession) return;
+
+      session = null;
+
+      clearTimeout(currentSession.closeTimer);
+      stopSendLoop();
+      stopMicrophone();
+
+      buttons.forEach((button) => button.classList.remove("active"));
+
+      try {
+        if (currentSession.ws && currentSession.ws.readyState <= WebSocket.OPEN) {
+          currentSession.ws.close(1000, "stop");
+        }
+      } catch {}
+
+      inputFloatQueue = [];
+
+      if (immediate) {
+        levelBar.style.width = "0%";
+      }
+
+      if (!keepText) {
+        setText(inputText, "按住下方按钮开始说话", true);
+        setText(outputText, "翻译结果会显示在这里，并自动播放语音", true);
+      }
+
+      setStatus("待机", "");
+    }
+
+    function stopMicrophone() {
+      if (processor) {
+        processor.onaudioprocess = null;
+        try { processor.disconnect(); } catch {}
+        processor = null;
       }
 
       if (micSource) {
@@ -724,7 +729,47 @@
       }
     }
 
-    function resampleToPcm(input, inputRate, outputRate) {
+    function handleServerContent(currentSession, content) {
+      if (content.interrupted) {
+        resetPlayback();
+      }
+
+      if (content.inputTranscription?.text) {
+        setText(inputText, content.inputTranscription.text, false);
+      }
+
+      if (content.inputTranscription?.languageCode) {
+        inputLang.textContent = content.inputTranscription.languageCode;
+      }
+
+      if (content.outputTranscription?.text) {
+        setText(outputText, content.outputTranscription.text, false);
+      }
+
+      if (content.outputTranscription?.languageCode) {
+        outputLang.textContent = content.outputTranscription.languageCode;
+      }
+
+      const parts = content.modelTurn?.parts || [];
+      for (const part of parts) {
+        const inlineData = part.inlineData || part.inline_data;
+        if (inlineData?.data) {
+          const rate = parseSampleRate(inlineData.mimeType || inlineData.mime_type) || DEFAULT_OUTPUT_SAMPLE_RATE;
+          playPcm16Base64(inlineData.data, rate);
+        }
+      }
+
+      if (content.turnComplete && session === currentSession && !currentSession.holding) {
+        clearTimeout(currentSession.closeTimer);
+        currentSession.closeTimer = setTimeout(() => {
+          if (session === currentSession) {
+            stopTranslate(true, true);
+          }
+        }, 900);
+      }
+    }
+
+    function resampleFloatToPcm16(input, inputRate, outputRate) {
       if (!input.length) return new ArrayBuffer(0);
 
       const ratio = inputRate / outputRate;
@@ -732,44 +777,34 @@
       const buffer = new ArrayBuffer(outputLength * 2);
       const view = new DataView(buffer);
 
-      for (let i = 0; i < outputLength; i += 1) {
-        const index = i * ratio;
-        const before = Math.floor(index);
-        const after = Math.min(before + 1, input.length - 1);
-        const weight = index - before;
-        const sample = input[before] * (1 - weight) + input[after] * weight;
+      for (let i = 0; i < outputLength; i++) {
+        const position = i * ratio;
+        const index = Math.floor(position);
+        const nextIndex = Math.min(index + 1, input.length - 1);
+        const weight = position - index;
+
+        const sample = input[index] * (1 - weight) + input[nextIndex] * weight;
         const clipped = Math.max(-1, Math.min(1, sample));
         const pcm = clipped < 0 ? clipped * 0x8000 : clipped * 0x7fff;
+
         view.setInt16(i * 2, pcm, true);
       }
 
       return buffer;
     }
 
-    function updateLevel(samples) {
-      let total = 0;
-      for (let i = 0; i < samples.length; i += 1) {
-        total += samples[i] * samples[i];
-      }
-
-      const rms = Math.sqrt(total / samples.length);
-      const level = Math.min(100, Math.max(3, Math.round(rms * 420)));
-      levelBar.style.width = `${level}%`;
-    }
-
-    function playPcm(base64, sampleRate) {
+    function playPcm16Base64(base64, sampleRate) {
       if (!audioContext) return;
 
-      const bytes = base64ToBytes(base64);
+      const bytes = base64ToUint8Array(base64);
       if (bytes.byteLength < 2) return;
 
-      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
       const frameCount = Math.floor(bytes.byteLength / 2);
-      // 🛠️ 核心修正：清除了连续赋值变量的拼写语法 Bug
-      const audioBuffer = audioContext.createBuffer(1, frameCount, sampleRate); 
+      const audioBuffer = audioContext.createBuffer(1, frameCount, sampleRate);
       const channel = audioBuffer.getChannelData(0);
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 
-      for (let i = 0; i < frameCount; i += 1) {
+      for (let i = 0; i < frameCount; i++) {
         channel[i] = view.getInt16(i * 2, true) / 32768;
       }
 
@@ -779,9 +814,10 @@
       source.onended = () => playingSources.delete(source);
 
       const now = audioContext.currentTime;
-      nextPlayTime = Math.max(nextPlayTime, now + 0.035);
+      nextPlayTime = Math.max(nextPlayTime, now + 0.03);
       source.start(nextPlayTime);
       nextPlayTime += audioBuffer.duration;
+
       playingSources.add(source);
     }
 
@@ -789,49 +825,61 @@
       for (const source of playingSources) {
         try { source.stop(); } catch {}
       }
+
       playingSources.clear();
       nextPlayTime = audioContext ? audioContext.currentTime : 0;
+    }
+
+    function updateLevel(samples) {
+      let total = 0;
+
+      for (let i = 0; i < samples.length; i++) {
+        total += samples[i] * samples[i];
+      }
+
+      const rms = Math.sqrt(total / samples.length);
+      const value = Math.min(100, Math.max(2, Math.round(rms * 460)));
+      levelBar.style.width = `${value}%`;
     }
 
     function arrayBufferToBase64(buffer) {
       const bytes = new Uint8Array(buffer);
       let binary = "";
-      const chunkSize = 0x8000;
+      const chunk = 0x8000;
 
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
       }
 
       return btoa(binary);
     }
 
-    function base64ToBytes(base64) {
+    function base64ToUint8Array(base64) {
       const binary = atob(base64);
       const bytes = new Uint8Array(binary.length);
 
-      for (let i = 0; i < binary.length; i += 1) {
+      for (let i = 0; i < binary.length; i++) {
         bytes[i] = binary.charCodeAt(i);
       }
 
       return bytes;
     }
 
-    function parseRate(mimeType) {
+    function parseSampleRate(mimeType) {
       const match = /rate=(\d+)/.exec(mimeType || "");
       return match ? Number(match[1]) : null;
     }
 
-    function setText(node, value, muted = false) {
-      node.textContent = value;
-      node.classList.toggle("placeholder", muted);
+    function setText(node, text, placeholder = false) {
+      node.textContent = text;
+      node.classList.toggle("placeholder", placeholder);
       node.scrollTop = node.scrollHeight;
     }
 
     function setStatus(text, mode) {
       statusText.textContent = text;
-      app.classList.toggle("is-live", mode === "live");
-      app.classList.toggle("is-error", mode === "error");
-      statusPill.title = text;
+      app.classList.toggle("live", mode === "live");
+      app.classList.toggle("error", mode === "error");
     }
 
     function showError(message) {
@@ -839,7 +887,7 @@
       toast.textContent = message;
       toast.classList.add("show");
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toast.classList.remove("show"), 4400);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 4800);
     }
   </script>
 </body>
