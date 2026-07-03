@@ -870,7 +870,7 @@
       node.scrollTop = node.scrollHeight;
     }
 
-    function setStatus(text, mode) {
+    function setStatus(text, mode) {   
       statusText.textContent = text;
       app.classList.toggle("is-live", mode === "live");
       app.classList.toggle("is-error", mode === "error");
